@@ -9,6 +9,7 @@ const Github = GitBranch;
 import { useMemoryStore } from '../store/memoryStore';
 import { ImportPreviewItem, MemoryCategory, MemorySource } from '../types';
 import { CATEGORY_BG, SOURCE_COLORS, SOURCE_ICONS } from '../utils/constants';
+import { jsonlToMemories } from '../utils/jsonlImport';
 import { cn } from '../utils/cn';
 
 type TabType = 'file' | 'github' | 'text';
@@ -24,7 +25,28 @@ function parseContent(content: string, filename: string): ImportPreviewItem[] {
   const source: MemorySource = filename.includes('claude') || filename.includes('CLAUDE') ? 'claude' :
     filename.includes('cursor') || filename.includes('cursorrules') ? 'cursor' : 'import';
 
-  if (filename.endsWith('.json')) {
+  if (filename.endsWith('.jsonl')) {
+    // Claude Code / OpenCode / Codex JSONL session log
+    const projectName = filename.replace(/\.jsonl$/i, '').replace(/[\\/]/g, '-');
+    const { memories, stats } = jsonlToMemories(content, { projectName });
+    items.push(...memories.slice(0, 200).map(m => ({
+      content: m.content,
+      category: m.category,
+      source: 'imported' as MemorySource,
+      tags: m.tags,
+      selected: true,
+    })));
+    // Append a synthetic summary so the user sees parse stats
+    if (items.length === 0) {
+      items.push({
+        content: `(JSONL had ${stats.totalTurns} turns / ${stats.userTurns} user messages; nothing matched the heuristic filter)`,
+        category: 'context' as MemoryCategory,
+        source: 'imported' as MemorySource,
+        tags: ['jsonl-empty'],
+        selected: false,
+      });
+    }
+  } else if (filename.endsWith('.json')) {
     // Try parse as JSON memory
     try {
       const json = JSON.parse(content);
@@ -142,7 +164,10 @@ export default function ImportPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'text/*': ['.md', '.txt', '.json', '.cursorrules'], 'application/json': ['.json'] },
+    accept: {
+      'text/*': ['.md', '.txt', '.json', '.cursorrules', '.jsonl'],
+      'application/json': ['.json', '.jsonl'],
+    },
     multiple: false,
   });
 
@@ -290,7 +315,8 @@ Use React Testing Library for component tests.` :
                   Supports: <code className="text-indigo-400">.cursorrules</code>,{' '}
                   <code className="text-indigo-400">CLAUDE.md</code>,{' '}
                   <code className="text-indigo-400">.claude/settings.local.json</code>,{' '}
-                  <code className="text-indigo-400">*.md</code>
+                  <code className="text-indigo-400">*.md</code>,{' '}
+                  <code className="text-cyan-400">*.jsonl</code>
                 </p>
               </div>
               {fileName && (
@@ -308,9 +334,10 @@ Use React Testing Library for component tests.` :
                     { file: '.cursorrules', desc: 'Splits by --- separators or bullet points' },
                     { file: 'settings.local.json', desc: 'Extracts rules array from JSON' },
                     { file: '*.md', desc: 'Generic markdown with heading sections' },
+                    { file: '*.jsonl', desc: 'Claude Code session log — extracts interesting user messages with auto-detected category', special: true },
                   ].map(f => (
                     <div key={f.file} className="flex items-start gap-2">
-                      <code className="text-xs text-indigo-400 mt-0.5 flex-shrink-0">{f.file}</code>
+                      <code className={cn('text-xs mt-0.5 flex-shrink-0', f.special ? 'text-cyan-400' : 'text-indigo-400')}>{f.file}</code>
                       <span className="text-xs text-gray-500">{f.desc}</span>
                     </div>
                   ))}

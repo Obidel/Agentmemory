@@ -7,7 +7,9 @@ import {
   type CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { readFile } from 'node:fs/promises';
 import type { Memory, MemoryCategory } from '../src/types/index.js';
+import { jsonlToMemories, parsedToMemory } from '../src/utils/jsonlImport';
 
 /**
  * Storage backend for the MCP server. Two implementations exist:
@@ -51,6 +53,9 @@ export interface MemoryBackend {
   getRules(): Promise<string>;
   getGraphJson(): Promise<string>;
   getProjectsJson(): Promise<string>;
+
+  /** Absolute path of the working directory (used for relative path resolution). */
+  cwd?(): string;
 }
 
 const VALID_CATEGORIES: MemoryCategory[] = [
@@ -85,6 +90,11 @@ const SimilarInput = z.object({
 
 const DeleteInput = z.object({ id: z.string().min(1) });
 const ProjectInput = z.object({ name: z.string().min(1) });
+
+const ImportJsonlInput = z.object({
+  path: z.string().describe('Absolute or MCP-cwd-relative path to a .jsonl file'),
+  project: z.string().optional().describe('Override project name (defaults to filename)'),
+});
 
 function textResult(text: string): CallToolResult {
   return { content: [{ type: 'text', text }] };
@@ -179,6 +189,18 @@ export function createServer(backend: MemoryBackend): Server {
         description: 'Get all rules for the current active project, formatted as a markdown document. Use this at the start of a task to load project context.',
         inputSchema: { type: 'object', properties: {} },
       },
+      {
+        name: 'import_jsonl',
+        description: 'Import a Claude Code / OpenCode / Codex JSONL session log. Parses user messages, applies heuristic category detection, and creates memories. Use this to backfill memory from past sessions.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: 'Path to a .jsonl file (absolute or relative to MCP cwd)' },
+            project: { type: 'string', description: 'Override project name' },
+          },
+          required: ['path'],
+        },
+      },
     ],
   }));
 
@@ -235,6 +257,33 @@ export function createServer(backend: MemoryBackend): Server {
         case 'get_project_context': {
           const { project, markdown } = await backend.getProjectContextMarkdown();
           return textResult(markdown || `# Rules for ${project}\n\n_No memories saved yet._`);
+        }
+        case 'import_jsonl': {
+          const a = ImportJsonlInput.parse(args);
+          const cwd = backend.cwd?.() ?? process.cwd();
+          const fullPath = a.path.startsWith('/') || /^[a-z]:/i.test(a.path) ? a.path : `${cwd}/${a.path}`;
+          let text: string;
+          try {
+            text = await readFile(fullPath, 'utf-8');
+          } catch (e) {
+            return errResult(`Cannot read ${fullPath}: ${(e as Error).message}`);
+          }
+          const { memories, stats } = jsonlToMemories(text, { projectName: a.project });
+          let imported = 0;
+          for (const p of memories) {
+            const id = 'mem-' + Math.random().toString(36).slice(2, 11);
+            await backend.addMemory({
+              content: p.content,
+              category: p.category,
+              project: p.project,
+              tags: p.tags,
+            });
+            imported++;
+          }
+          return textResult(
+            `Imported ${imported} memories from ${fullPath}\n` +
+            `Total turns: ${stats.totalTurns}, user messages: ${stats.userTurns}, accepted: ${stats.accepted}`
+          );
         }
         default:
           return errResult(`Unknown tool: ${name}`);
