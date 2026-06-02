@@ -10,6 +10,32 @@
 
 <sub align="center">* <b>Hosted preview</b> on Vercel — sign in with email or GitHub to try. Your data stays private to your account via <a href="https://supabase.com/docs/guides/auth/row-level-security">Supabase RLS</a>. For self-hosting or local-only mode, see <a href="#quick-start">Quick start</a> below.</sub>
 
+## Screenshots
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/dashboard.png" alt="Dashboard" width="800" />
+</p>
+
+<p align="center">
+  <em>Dashboard — search, filter, and decay-aware memory list</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/graph.png" alt="Memory Graph" width="800" />
+</p>
+
+<p align="center">
+  <em>Memory Graph — D3 force-directed view of memories and their semantic relations</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/search.png" alt="Hybrid Search" width="800" />
+</p>
+
+<p align="center">
+  <em>Hybrid Search — BM25 + vector + graph results, fused with RRF</em>
+</p>
+
 ## 100% free, forever
 
 AgentMemory is open source under MIT. No paywalls, no premium tiers, no limits.

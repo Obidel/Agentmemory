@@ -2,7 +2,7 @@
   "name": "agentmemory",
   "version": "0.1.0",
   "private": false,
-  "description": "Visual memory manager for AI agents. MCP-native, open source, MIT-licensed.",
+  "description": "Visual memory manager for AI agents. MCP-native, MIT-licensed, free forever.",
   "type": "module",
   "license": "MIT",
   "scripts": {
