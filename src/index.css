@@ -137,10 +137,13 @@ html[data-theme="light"] {
   .text-gray-400 { color: var(--text-muted); }
   .text-gray-500 { color: var(--text-subtle); }
   .text-gray-600 { color: var(--text-subtle); }
+  .text-gray-700 { color: var(--text-muted); }
+  .text-slate-300 { color: var(--text-secondary); }
+  .text-slate-400 { color: var(--text-muted); }
   .placeholder\:text-gray-500::placeholder { color: var(--text-subtle); }
   .placeholder\:text-gray-600::placeholder { color: var(--text-subtle); }
 
-  /* Surfaces */
+  /* Surfaces — gray scale (covers 50+ hardcoded bg-gray-* in pages) */
   .bg-white\/5 { background-color: var(--hover-overlay); }
   .bg-white\/10 { background-color: var(--hover-overlay-2); }
   .bg-white\/\[0\.02\] { background-color: rgba(15, 23, 42, 0.02); }
@@ -148,28 +151,62 @@ html[data-theme="light"] {
   .bg-black\/20 { background-color: rgba(15, 23, 42, 0.04); }
   .bg-black\/30 { background-color: var(--input-bg); }
   .bg-black\/40 { background-color: var(--input-bg); }
+  .bg-gray-950 { background-color: var(--surface-base); }
+  .bg-gray-900 { background-color: var(--surface-card); }
+  .bg-gray-900\/90 { background-color: var(--surface-card); }
+  .bg-gray-900\/50 { background-color: var(--surface-card); }
+  .bg-gray-800 { background-color: var(--surface-elevated); }
+  .bg-gray-700 { background-color: var(--hover-overlay-2); }
   .bg-gray-800 { background-color: #f1f5f9; }
+
+  /* Surfaces — slate scale (AuthPage uses bg-slate-*) */
+  .bg-slate-950 { background-color: var(--surface-base); }
+  .bg-slate-900 { background-color: var(--surface-card); }
+  .bg-slate-800 { background-color: var(--surface-elevated); }
+  .bg-slate-700 { background-color: var(--hover-overlay-2); }
 
   /* Borders */
   .border-white\/5 { border-color: var(--border-subtle); }
   .border-white\/10 { border-color: var(--border-default); }
   .border-white\/30 { border-color: var(--border-strong); }
   .border-white\/50 { border-color: var(--border-strong); }
+  .border-gray-800 { border-color: var(--border-subtle); }
+  .border-gray-700 { border-color: var(--border-default); }
+  .border-gray-600 { border-color: var(--border-strong); }
+  .border-gray-500 { border-color: var(--border-strong); }
+  .border-slate-800 { border-color: var(--border-subtle); }
+  .border-slate-700 { border-color: var(--border-default); }
   .divide-white\/5 > * + * { border-color: var(--border-subtle); }
+  .divide-gray-800 > * + * { border-color: var(--border-subtle); }
+  .divide-gray-700 > * + * { border-color: var(--border-default); }
 
   /* Hover surfaces */
   .hover\:bg-white\/5:hover { background-color: var(--hover-overlay); }
   .hover\:bg-white\/10:hover { background-color: var(--hover-overlay-2); }
   .hover\:bg-white\/\[0\.04\]:hover { background-color: rgba(15, 23, 42, 0.04); }
+  .hover\:bg-gray-700:hover { background-color: var(--hover-overlay-2); }
+  .hover\:bg-slate-700:hover { background-color: var(--hover-overlay-2); }
   .hover\:border-white\/10:hover { border-color: var(--border-default); }
   .hover\:border-white\/30:hover { border-color: var(--border-strong); }
+  .hover\:border-gray-600:hover { border-color: var(--border-strong); }
+  .hover\:border-gray-500:hover { border-color: var(--border-strong); }
   .hover\:text-white:hover { color: var(--text-primary); }
 
   /* Focus */
   .focus\:border-violet-500\/50:focus { border-color: rgba(139, 92, 246, 0.6); }
+  .focus\:border-indigo-500:focus { border-color: rgba(99, 102, 241, 0.7); }
 
   /* Group hover (text inside card on hover) */
   .group:hover .group-hover\:text-white { color: var(--text-primary); }
+
+  /* Ring (focus rings) */
+  .ring-violet-500\/30 { --tw-ring-color: rgba(139, 92, 246, 0.35); }
+  .ring-indigo-500\/30 { --tw-ring-color: rgba(99, 102, 241, 0.35); }
+
+  /* Shadows (reduce intensity in light mode — shadows show on light too) */
+  .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18); }
+  .shadow-xl { box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.10), 0 8px 10px -6px rgba(15, 23, 42, 0.08); }
+  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.05); }
 }
 
 /* ==========================================================================
