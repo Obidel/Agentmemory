@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { Memory, MemoryRelation, MemoryCategory, MemorySource, User } from '../types';
 import { calculateStrength, touchMemory, isForgetCandidate, extractConcepts } from '../utils/memoryDecay';
+import { buildBM25Index, bm25Search, type BM25Index } from '../utils/bm25';
+import { rrf, topN } from '../utils/rrf';
 
 const DEMO_USER: User = {
   id: 'demo-user-001',
@@ -206,9 +208,116 @@ export function buildRelationsFor(
   return created;
 }
 
+// ─── RRF hybrid search (BM25 + Vector + Graph) ──────────────────────
+
+/** Pre-built BM25 index, lazy-initialized and kept in sync via getBm25Index(). */
+let _bm25Cache: { id: string; index: BM25Index } | null = null;
+
+export function getBm25Index(memories: Memory[]): BM25Index {
+  // Cache key: count + max(updated_at) — cheap change detection.
+  const sig = `${memories.length}:${memories.reduce((m, x) => Math.max(m, new Date(x.updated_at).getTime()), 0)}`;
+  if (_bm25Cache && _bm25Cache.id === sig) return _bm25Cache.index;
+  const index = buildBM25Index(memories.map(m => ({ id: m.id, text: m.content })));
+  _bm25Cache = { id: sig, index };
+  return index;
+}
+
+export function invalidateBm25Index() { _bm25Cache = null; }
+
+export interface SearchWeights { bm25: number; vector: number; graph: number }
+const DEFAULT_WEIGHTS: SearchWeights = { bm25: 0.4, vector: 0.6, graph: 0.3 };
+
+/**
+ * Hybrid RRF search. Combines:
+ *  - BM25 over content (fast, lexical)
+ *  - Cosine similarity over the cheap 20-dim embeddings (semantic)
+ *  - Graph proximity: memories connected to the top-1 BM25 hit by a relation
+ * Returns the original Memory objects sorted by fused score.
+ */
+export function hybridSearch(
+  query: string,
+  memories: Memory[],
+  relations: MemoryRelation[],
+  options: { weights?: SearchWeights; project?: string; category?: MemoryCategory; limit?: number } = {}
+): Array<Memory & { rrfScore: number; bm25: number; vector: number; graph: number }> {
+  const weights = options.weights ?? DEFAULT_WEIGHTS;
+  const limit = options.limit ?? 20;
+  if (!query.trim()) return [];
+
+  let candidates = memories;
+  if (options.project) candidates = candidates.filter(m => m.project_name === options.project);
+  if (options.category) candidates = candidates.filter(m => m.category === options.category);
+  if (candidates.length === 0) return [];
+
+  // 1) BM25
+  const bm25Idx = getBm25Index(candidates);
+  const bm25Hits = bm25Search(bm25Idx, query, Math.min(50, candidates.length));
+  const bm25Ranks = bm25Hits.map(h => h.id);
+  const bm25ScoreMap = new Map(bm25Hits.map(h => [h.id, h.score]));
+
+  // 2) Vector
+  const queryEmb = simpleEmbedding(query);
+  const vectorRanks = candidates
+    .filter(m => m.embedding)
+    .map(m => ({ id: m.id, score: cosineSimilarity(queryEmb, m.embedding!) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 50)
+    .map(x => x.id);
+  const vectorScoreMap = new Map(
+    candidates
+      .filter(m => m.embedding)
+      .map(m => [m.id, cosineSimilarity(queryEmb, m.embedding!)] as const)
+  );
+
+  // 3) Graph: gather all memories related to the top-3 BM25 hits, push to front
+  const graphRelated = new Set<string>();
+  for (const id of bm25Ranks.slice(0, 3)) {
+    for (const r of relations) {
+      if (r.from_memory_id === id) graphRelated.add(r.to_memory_id);
+      if (r.to_memory_id === id) graphRelated.add(r.from_memory_id);
+    }
+  }
+  const graphRanks = [...graphRelated];
+
+  // 4) RRF fusion
+  const fused = rrf([
+    { ids: bm25Ranks,    weight: weights.bm25 },
+    { ids: vectorRanks,  weight: weights.vector },
+    { ids: graphRanks,   weight: weights.graph },
+  ]);
+  const ranked = topN(fused, limit);
+
+  const byId = new Map(candidates.map(m => [m.id, m]));
+  return ranked
+    .map(r => byId.get(r.id))
+    .filter((m): m is Memory => Boolean(m))
+    .map(m => ({
+      ...m,
+      rrfScore: rrfFuseScore(m.id, bm25Ranks, vectorRanks, graphRanks, weights),
+      bm25: bm25ScoreMap.get(m.id) ?? 0,
+      vector: vectorScoreMap.get(m.id) ?? 0,
+      graph: graphRelated.has(m.id) ? 1 : 0,
+    }));
+}
+
+function rrfFuseScore(id: string, bm25Ids: string[], vecIds: string[], graphIds: string[], w: SearchWeights): number {
+  const r = (arr: string[]) => arr.indexOf(id);
+  const total = w.bm25 + w.vector + w.graph || 1;
+  const s = (arr: string[], weight: number) => {
+    const i = r(arr);
+    return i < 0 ? 0 : (weight / total) * (1 / (60 + i + 1));
+  };
+  return s(bm25Ids, w.bm25) + s(vecIds, w.vector) + s(graphIds, w.graph);
+}
+
 const seedMemoriesWithEmbeddings: Memory[] = SEED_MEMORIES.map(m => ({
   ...m,
   embedding: simpleEmbedding(m.content),
+  concepts: extractConcepts(m.content, m.tags),
+  strength: 1.0,
+  access_count: 0,
+  last_accessed_at: m.created_at,
+  is_latest: true,
 }));
 
 // === Cross-environment storage adapter ===
@@ -333,6 +442,7 @@ export const useMemoryStore = create<MemoryStore>()(
           updated_at: now,
         };
         set(state => ({ memories: [...state.memories, newMemory] }));
+        invalidateBm25Index();
 
         const { memories, relations } = get();
         const newRelations = buildRelationsFor(newMemory, memories, relations);
@@ -361,6 +471,7 @@ export const useMemoryStore = create<MemoryStore>()(
             return updated;
           }),
         }));
+        if (updated) invalidateBm25Index();
         if (updated && get().isCloud) {
           void get().pushMemoryToCloud(updated);
         }
@@ -371,6 +482,7 @@ export const useMemoryStore = create<MemoryStore>()(
           memories: state.memories.filter(m => m.id !== id),
           relations: state.relations.filter(r => r.from_memory_id !== id && r.to_memory_id !== id),
         }));
+        invalidateBm25Index();
         if (get().isCloud) {
           void get().deleteMemoryFromCloud(id);
         }
@@ -417,17 +529,18 @@ export const useMemoryStore = create<MemoryStore>()(
       },
 
       searchMemories: (query, category?, source?) => {
-        const { memories } = get();
-        const lowerQuery = query.toLowerCase();
-        return memories.filter(m => {
-          const matchesQuery = !query ||
-            m.content.toLowerCase().includes(lowerQuery) ||
-            m.tags.some(t => t.toLowerCase().includes(lowerQuery)) ||
-            m.project_name.toLowerCase().includes(lowerQuery);
-          const matchesCategory = !category || m.category === category;
-          const matchesSource = !source || m.source === source;
-          return matchesQuery && matchesCategory && matchesSource;
-        });
+        const { memories, relations } = get();
+        if (!query.trim()) {
+          return memories.filter(m => {
+            if (category && m.category !== category) return false;
+            if (source && m.source !== source) return false;
+            return true;
+          });
+        }
+        const hits = hybridSearch(query, memories, relations, { category, limit: 50 });
+        return hits
+          .filter(m => !source || m.source === source)
+          .map(m => ({ ...m, similarity: m.vector }));
       },
 
       getSimilarMemories: (memoryId) => {
@@ -511,6 +624,7 @@ export const useMemoryStore = create<MemoryStore>()(
                    survivors.some(m => m.id === r.to_memory_id)
             ),
           }));
+          invalidateBm25Index();
         }
         return removed;
       },

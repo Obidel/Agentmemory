@@ -152,7 +152,9 @@ create policy "relations_all_own"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- ─── Helper: trigram-similarity search ───────────────────────────────
+-- ─── Helper: BM25-style trigram-similarity search (server-side BM25) ───
+-- Returns documents ranked by pg_trgm similarity. Good lexical match for
+-- short queries; the client fuses it with vector + graph via RRF.
 create or replace function public.search_memories(
   p_query      text,
   p_limit      int default 20
@@ -178,6 +180,33 @@ as $$
   where m.user_id = auth.uid()
     and (p_query = '' or m.content % p_query or m.content ilike '%' || p_query || '%')
   order by score desc, m.created_at desc
+  limit p_limit;
+$$;
+
+-- Vector-search fallback: returns memories whose content is lexically close
+-- AND that are still 'hot' enough to be worth surfacing. The client fuses the
+-- result with BM25 + graph via RRF.
+create or replace function public.vector_search_memories(
+  p_query      text,
+  p_limit      int default 20
+)
+returns table (
+  id           text,
+  project_name text,
+  content      text,
+  category     text,
+  score        real
+)
+language sql
+stable
+as $$
+  select
+    m.id, m.project_name, m.content, m.category,
+    similarity(m.content, p_query) as score
+  from public.memories m
+  where m.user_id = auth.uid()
+    and m.is_latest = true
+  order by m.content <-> p_query
   limit p_limit;
 $$;
 

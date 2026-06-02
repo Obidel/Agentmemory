@@ -123,7 +123,6 @@ export class SupabaseBackend implements MemoryBackend {
   async findSimilar(input: { text?: string; memoryId?: string; topK?: number }): Promise<Array<Memory & { score: number }>> {
     const target = input.text ?? '';
     if (!target && !input.memoryId) return [];
-    // Use the SQL function defined in schema.sql (trigram similarity).
     const { data, error } = await this.sb.rpc('find_similar_memories', {
       p_query: target,
       p_limit: input.topK ?? 5,
@@ -138,7 +137,12 @@ export class SupabaseBackend implements MemoryBackend {
       category: r.category,
       importance: 3,
       tags: [],
+      concepts: [],
       source: 'agent' as const,
+      strength: 1,
+      access_count: 0,
+      last_accessed_at: new Date().toISOString(),
+      is_latest: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       score: r.score,

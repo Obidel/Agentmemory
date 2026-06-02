@@ -4,6 +4,7 @@ import {
   simpleEmbedding,
   cosineSimilarity,
   buildRelationsFor,
+  hybridSearch,
 } from '../../src/store/memoryStore.js';
 import type { MemoryBackend } from '../server.js';
 
@@ -34,16 +35,15 @@ export class LocalBackend implements MemoryBackend {
 
   async searchMemories(input: { query: string; project?: string; category?: MemoryCategory; limit?: number }): Promise<Memory[]> {
     const state = useMemoryStore.getState();
-    const lower = input.query.toLowerCase();
-    return state.memories
-      .filter(m => {
-        if (input.project && m.project_name !== input.project) return false;
-        if (input.category && m.category !== input.category) return false;
-        return m.content.toLowerCase().includes(lower) ||
-               m.tags.some(t => t.toLowerCase().includes(lower)) ||
-               m.project_name.toLowerCase().includes(lower);
-      })
-      .slice(0, input.limit ?? 20);
+    const hits = hybridSearch(input.query, state.memories, state.relations, {
+      project: input.project,
+      category: input.category,
+      limit: input.limit ?? 20,
+    });
+    return hits.map(h => {
+      const { rrfScore, bm25, vector, graph, ...mem } = h;
+      return mem as Memory;
+    });
   }
 
   async listMemories(input: { project?: string; category?: MemoryCategory }): Promise<Memory[]> {

@@ -10,8 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "mcp": "tsx mcp/index.ts",
-    "build:mcp": "tsc -p tsconfig.mcp.json",
-    "start:mcp": "node dist-mcp/mcp/index.js"
+    "typecheck:mcp": "tsc -p tsconfig.mcp.json",
+    "start:mcp": "tsx mcp/index.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
