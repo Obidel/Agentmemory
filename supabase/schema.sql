@@ -95,6 +95,18 @@ create index if not exists memories_category_idx on public.memories(category);
 create index if not exists memories_content_trgm on public.memories using gin (content gin_trgm_ops);
 create index if not exists memories_tags_gin     on public.memories using gin (tags);
 
+-- ─── Decay / access tracking (borrowed from rohitg00/agentmemory) ─────
+alter table public.memories
+  add column if not exists concepts         text[] not null default '{}',
+  add column if not exists strength         real   not null default 1.0,
+  add column if not exists access_count     int    not null default 0,
+  add column if not exists last_accessed_at timestamptz not null default now(),
+  add column if not exists is_latest        boolean not null default true,
+  add column if not exists forget_after     timestamptz;
+
+create index if not exists memories_is_latest_idx on public.memories(user_id, is_latest);
+create index if not exists memories_strength_idx  on public.memories(user_id, strength);
+
 alter table public.memories enable row level security;
 
 drop policy if exists "memories_all_own" on public.memories;

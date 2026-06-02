@@ -12,7 +12,13 @@ interface MemoryRow {
   category: Memory['category'];
   importance: number;
   tags: string[];
+  concepts: string[];
   source: Memory['source'];
+  strength: number;
+  access_count: number;
+  last_accessed_at: string;
+  is_latest: boolean;
+  forget_after: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,7 +74,13 @@ export async function pullAllFromCloud(): Promise<{
     category: r.category,
     importance: r.importance,
     tags: r.tags ?? [],
+    concepts: r.concepts ?? [],
     source: r.source,
+    strength: r.strength ?? 1.0,
+    access_count: r.access_count ?? 0,
+    last_accessed_at: r.last_accessed_at ?? r.created_at,
+    is_latest: r.is_latest ?? true,
+    forget_after: r.forget_after ?? undefined,
     created_at: r.created_at,
     updated_at: r.updated_at,
   }));
@@ -96,7 +108,13 @@ export async function pushToCloud(m: Memory): Promise<void> {
     category: m.category,
     importance: m.importance,
     tags: m.tags ?? [],
+    concepts: m.concepts ?? [],
     source: m.source,
+    strength: m.strength ?? 1.0,
+    access_count: m.access_count ?? 0,
+    last_accessed_at: m.last_accessed_at ?? m.created_at,
+    is_latest: m.is_latest ?? true,
+    forget_after: m.forget_after ?? null,
   };
   const { error } = await sb().from('memories').upsert(row, { onConflict: 'id' });
   if (error) throw error;

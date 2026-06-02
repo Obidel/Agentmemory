@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Edit2, Trash2, Tag, Clock, Star, ChevronRight } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Edit2, Trash2, Tag, Clock, Star, ChevronRight, Flame, Snowflake } from 'lucide-react';
 import { Memory } from '../types';
 import { CATEGORY_BG, CATEGORY_COLORS, SOURCE_ICONS, SOURCE_COLORS } from '../utils/constants';
 import { useMemoryStore } from '../store/memoryStore';
+import { tierOf, calculateStrength } from '../utils/memoryDecay';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '../utils/cn';
 
@@ -14,10 +15,27 @@ interface MemoryCardProps {
   compact?: boolean;
 }
 
+const TIER_STYLE: Record<string, { icon: React.ReactNode; label: string; cls: string }> = {
+  hot:  { icon: <Flame size={9} />,    label: 'hot',  cls: 'bg-orange-500/15 text-orange-300 border-orange-500/30' },
+  warm: { icon: <Flame size={9} />,    label: 'warm', cls: 'bg-amber-500/10  text-amber-200  border-amber-500/20'  },
+  cold: { icon: <Snowflake size={9} />,label: 'cold', cls: 'bg-cyan-500/10   text-cyan-200   border-cyan-500/20'   },
+  dead: { icon: <Snowflake size={9} />,label: 'stale',cls: 'bg-gray-500/10   text-gray-400   border-gray-500/20'  },
+};
+
 export default function MemoryCard({ memory, onEdit, onClick, similarity, compact }: MemoryCardProps) {
-  const { deleteMemory, updateMemory } = useMemoryStore();
+  const { deleteMemory, updateMemory, touchMemoryById } = useMemoryStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const touchedRef = useRef(false);
+
+  // Mark as accessed the first time the card becomes visible to the user.
+  useEffect(() => {
+    if (touchedRef.current) return;
+    touchedRef.current = true;
+    touchMemoryById(memory.id);
+    // intentionally empty deps: fire once per mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,6 +100,20 @@ export default function MemoryCard({ memory, onEdit, onClick, similarity, compac
           {Math.round(similarity * 100)}% match
         </div>
       )}
+
+      {/* Tier badge (only for non-compact) */}
+      {!compact && (() => {
+        const tier = tierOf(memory);
+        const t = TIER_STYLE[tier];
+        return (
+          <div className={cn(
+            'absolute top-3 right-3 rounded-full px-2 py-0.5 text-[10px] font-mono border flex items-center gap-1',
+            t.cls
+          )} title={`strength ${calculateStrength(memory).toFixed(2)}`}>
+            {t.icon} {t.label}
+          </div>
+        );
+      })()}
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">

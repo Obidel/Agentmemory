@@ -11,11 +11,19 @@ export interface Memory {
   category: MemoryCategory;
   source: MemorySource;
   tags: string[];
+  concepts?: string[];          // normalized keywords for dedup / Jaccard
   embedding?: number[];
-  importance?: number; // 1-5
+  importance?: number;          // 1-5
+  strength?: number;            // 0-1, recalculated on read
+  access_count?: number;        // how many times the memory was retrieved
+  last_accessed_at?: string;    // for decay calculation
+  is_latest?: boolean;          // false = superseded by a newer memory
+  forget_after?: string;        // optional hard TTL
   created_at: string;
   updated_at: string;
 }
+
+export type MemoryTier = 'hot' | 'warm' | 'cold' | 'dead';
 
 export interface MemoryRelation {
   id: string;

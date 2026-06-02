@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { Memory, MemoryRelation, MemoryCategory, MemorySource, User } from '../types';
+import { calculateStrength, touchMemory, isForgetCandidate, extractConcepts } from '../utils/memoryDecay';
 
 const DEMO_USER: User = {
   id: 'demo-user-001',
@@ -297,6 +298,10 @@ interface MemoryStore {
   pullFromCloud: () => Promise<void>;
   pushMemoryToCloud: (m: Memory) => Promise<void>;
   deleteMemoryFromCloud: (id: string) => Promise<void>;
+
+  touchMemoryById: (id: string) => void;
+  runAutoForget: () => number;
+  getMemoryStrength: (m: Memory) => number;
 }
 
 export const useMemoryStore = create<MemoryStore>()(
@@ -319,6 +324,11 @@ export const useMemoryStore = create<MemoryStore>()(
           user_id: get().currentUser.id,
           embedding: simpleEmbedding(memoryData.content),
           importance: memoryData.importance || 3,
+          strength: 1.0,
+          access_count: 0,
+          last_accessed_at: now,
+          is_latest: true,
+          concepts: extractConcepts(memoryData.content, memoryData.tags),
           created_at: now,
           updated_at: now,
         };
@@ -481,6 +491,31 @@ export const useMemoryStore = create<MemoryStore>()(
           console.error('agentmemory: deleteMemoryFromCloud failed', err);
         }
       },
+
+      touchMemoryById: (id) => {
+        set(state => ({
+          memories: state.memories.map(m => m.id === id ? touchMemory(m) : m),
+        }));
+      },
+
+      runAutoForget: () => {
+        const now = Date.now();
+        const before = get().memories.length;
+        const survivors = get().memories.filter(m => !isForgetCandidate(m, now));
+        const removed = before - survivors.length;
+        if (removed > 0) {
+          set(state => ({
+            memories: survivors,
+            relations: state.relations.filter(
+              r => survivors.some(m => m.id === r.from_memory_id) &&
+                   survivors.some(m => m.id === r.to_memory_id)
+            ),
+          }));
+        }
+        return removed;
+      },
+
+      getMemoryStrength: (m) => calculateStrength(m),
     }),
     {
       name: 'agent-memory-store',

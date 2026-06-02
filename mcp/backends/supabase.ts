@@ -11,7 +11,13 @@ interface MemoryRow {
   category: Memory['category'];
   importance: number;
   tags: string[];
+  concepts: string[];
   source: Memory['source'];
+  strength: number;
+  access_count: number;
+  last_accessed_at: string;
+  is_latest: boolean;
+  forget_after: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,23 +86,17 @@ export class SupabaseBackend implements MemoryBackend {
       category: input.category,
       importance: input.importance ?? 3,
       tags: input.tags ?? [],
+      concepts: extractConcepts(input.content, input.tags ?? []),
       source: 'agent',
+      strength: 1.0,
+      access_count: 0,
+      last_accessed_at: now,
+      is_latest: true,
     };
     const { data, error } = await this.sb.from('memories').insert(row).select('*').single();
     if (error) throw error;
     const m = data as MemoryRow;
-    return {
-      id: m.id,
-      user_id: m.user_id,
-      project_name: m.project_name,
-      content: m.content,
-      category: m.category,
-      importance: m.importance,
-      tags: m.tags,
-      source: m.source,
-      created_at: m.created_at,
-      updated_at: m.updated_at,
-    };
+    return this.rowToMemory(m);
   }
 
   async searchMemories(input: { query: string; project?: string; category?: MemoryCategory; limit?: number }): Promise<Memory[]> {
@@ -208,8 +208,16 @@ export class SupabaseBackend implements MemoryBackend {
     category: r.category,
     importance: r.importance,
     tags: r.tags ?? [],
+    concepts: r.concepts ?? [],
     source: r.source,
+    strength: r.strength ?? 1.0,
+    access_count: r.access_count ?? 0,
+    last_accessed_at: r.last_accessed_at ?? r.created_at,
+    is_latest: r.is_latest ?? true,
+    forget_after: r.forget_after ?? undefined,
     created_at: r.created_at,
     updated_at: r.updated_at,
   });
 }
+
+import { extractConcepts } from '../../src/utils/memoryDecay.js';

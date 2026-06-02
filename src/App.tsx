@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -10,6 +11,7 @@ import SupportPage from './pages/SupportPage';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import { useAuth } from './hooks/useAuth';
+import { useMemoryStore } from './store/memoryStore';
 
 function NotFound() {
   return (
@@ -26,6 +28,11 @@ function NotFound() {
 
 export default function App() {
   useAuth();
+  // Run auto-forget once on app boot to prune decayed memories.
+  useEffect(() => {
+    const removed = useMemoryStore.getState().runAutoForget();
+    if (removed > 0) console.info(`[agentmemory] auto-forgot ${removed} decayed memories`);
+  }, []);
   return (
     <HashRouter>
       <Routes>
