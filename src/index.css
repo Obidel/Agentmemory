@@ -157,6 +157,8 @@ html[data-theme="light"] {
   .bg-gray-900\/50 { background-color: var(--surface-card); }
   .bg-gray-800 { background-color: var(--surface-elevated); }
   .bg-gray-700 { background-color: var(--hover-overlay-2); }
+  .bg-gray-700\/50 { background-color: var(--hover-overlay); }
+  .bg-gray-500\/10 { background-color: rgba(15, 23, 42, 0.06); }
   .bg-gray-800 { background-color: #f1f5f9; }
 
   /* Surfaces — slate scale (AuthPage uses bg-slate-*) */
@@ -174,6 +176,7 @@ html[data-theme="light"] {
   .border-gray-700 { border-color: var(--border-default); }
   .border-gray-600 { border-color: var(--border-strong); }
   .border-gray-500 { border-color: var(--border-strong); }
+  .border-gray-500\/20 { border-color: rgba(15, 23, 42, 0.12); }
   .border-slate-800 { border-color: var(--border-subtle); }
   .border-slate-700 { border-color: var(--border-default); }
   .divide-white\/5 > * + * { border-color: var(--border-subtle); }
@@ -185,6 +188,7 @@ html[data-theme="light"] {
   .hover\:bg-white\/10:hover { background-color: var(--hover-overlay-2); }
   .hover\:bg-white\/\[0\.04\]:hover { background-color: rgba(15, 23, 42, 0.04); }
   .hover\:bg-gray-700:hover { background-color: var(--hover-overlay-2); }
+  .hover\:bg-gray-750:hover { background-color: var(--hover-overlay-2); }
   .hover\:bg-slate-700:hover { background-color: var(--hover-overlay-2); }
   .hover\:border-white\/10:hover { border-color: var(--border-default); }
   .hover\:border-white\/30:hover { border-color: var(--border-strong); }
