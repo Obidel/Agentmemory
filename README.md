@@ -8,7 +8,7 @@ AgentMemory is open source under MIT. No paywalls, no premium tiers, no limits.
 
 - **Free for everyone** — unlimited memories, unlimited projects
 - **Self-hostable** — run locally forever, no telemetry, no lock-in
-- **MCP-native** — works as a Model Context Protocol server in Claude Desktop, Cursor, Cline, etc.
+- **MCP-native** — works as a Model Context Protocol server in Claude Desktop, Cursor, Cline, Continue, Windsurf, Roo Code, Kilo Code, Zed, Aider, Goose, Warp, Codex CLI, Gemini CLI, GitHub Copilot CLI, Qwen Code CLI, Google Antigravity, AWS Kiro, Droid, OpenCode, OpenClaw, and pi-mono. See [Connect to your AI tool](#connect-to-your-ai-tool) below.
 - **Visual** — graph view of all memories and their semantic relations
 - **Portable** — import/export to `.cursorrules`, `CLAUDE.md`, MemGPT JSON, Claude Code `.jsonl` sessions
 - **Optional cloud sync** — sign in to sync your memories across devices via Supabase
@@ -56,6 +56,488 @@ Configures in `claude_desktop_config.json` (the script runs `mcp/index.ts` via `
 ```
 
 9 tools: `add_memory`, `search_memories`, `list_memories`, `find_similar`, `delete_memory`, `list_projects`, `switch_project`, `get_project_context`, `import_jsonl`, `backfill_embeddings`. 3 resources: `agentmemory://rules`, `agentmemory://graph`, `agentmemory://projects`. 100% free, no license keys.
+
+## Connect to your AI tool
+
+AgentMemory exposes the same MCP server in two modes:
+
+- **Local stdio** — runs `mcp/index.ts` via `tsx`; the agent process invokes it as a child process. Best for desktop tools that have file-system access to your machine.
+- **Cloud HTTP** — Streamable HTTP endpoint at `https://<your-host>/mcp` (Vercel default). Best for hosted tools, web clients, and sharing the same memory across machines. The user's Supabase JWT goes in `Authorization: Bearer <jwt>`.
+
+The snippets below assume your clone is at `/absolute/path/to/agentmemory`. The local stdio command runs the MCP server directly with `tsx` — **no build step needed**.
+
+### Two reference snippets you'll reuse
+
+```jsonc
+// LOCAL — stdio
+{
+  "command": "npx",
+  "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+  "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+}
+```
+
+```jsonc
+// CLOUD — HTTP
+{
+  "url": "https://your-app.vercel.app/mcp",
+  "headers": { "Authorization": "Bearer <supabase-jwt>" }
+}
+```
+
+To get a Supabase JWT, sign in to the hosted AgentMemory web UI, then in DevTools run `JSON.parse(localStorage.getItem('sb-<project>-auth-token') || 'null')` and copy `access_token`. JWTs last ~1h; refresh by re-running the command after each session.
+
+### Table of contents
+
+| # | Tool | Config file | Mode |
+| - | ---- | ----------- | ---- |
+| 1 | [Claude Desktop](#1-claude-desktop) | `claude_desktop_config.json` | stdio / http |
+| 2 | [Cursor](#2-cursor) | `.cursor/mcp.json` | stdio / http |
+| 3 | [Cline](#3-cline) | Cline sidebar → MCP Servers | stdio / http |
+| 4 | [Continue](#4-continue) | `~/.continue/config.yaml` | stdio / http |
+| 5 | [Roo Code](#5-roo-code) | `.roo/mcp.json` | stdio / http |
+| 6 | [Kilo Code](#6-kilo-code) | Kilo sidebar → MCP Servers | stdio / http |
+| 7 | [Windsurf](#7-windsurf) | `~/.codeium/windsurf/mcp_config.json` | stdio / http |
+| 8 | [Zed](#8-zed) | `~/.config/zed/settings.json` | stdio / http |
+| 9 | [Aider](#9-aider) | `--mcp-server` flag | stdio |
+| 10 | [Goose](#10-goose) | `~/.config/goose/config.yaml` | stdio / http |
+| 11 | [Warp](#11-warp) | Warp Drive → MCP Servers | stdio / http |
+| 12 | [OpenAI Codex CLI](#12-openai-codex-cli) | `~/.codex/config.toml` | stdio / http |
+| 13 | [Google Gemini CLI](#13-google-gemini-cli) | `~/.gemini/settings.json` | stdio / http |
+| 14 | [GitHub Copilot CLI](#14-github-copilot-cli) | `~/.config/github-copilot/mcp.json` | stdio / http |
+| 15 | [Qwen Code CLI](#15-qwen-code-cli) | `~/.qwen/settings.json` | stdio / http |
+| 16 | [Google Antigravity](#16-google-antigravity) | `.antigravity/mcp.json` | stdio / http |
+| 17 | [AWS Kiro](#17-aws-kiro) | `.kiro/settings/mcp.json` | stdio / http |
+| 18 | [Droid (Factory)](#18-droid-factory) | `~/.droid/mcp.json` | stdio / http |
+| 19 | [OpenCode](#19-opencode) | `opencode.json` / `~/.config/opencode/config.json` | stdio / http |
+| 20 | [OpenClaw & pi-mono](#20-openclaw--pi-mono) | `~/.openclaw/openclaw.json` / `~/.pi/config.json` | stdio / http |
+
+---
+
+### 1. Claude Desktop
+
+`~/Library/Application Support/Claude/claude_desktop_config.json` (mac) · `%APPDATA%\Claude\claude_desktop_config.json` (win) · `~/.config/Claude/claude_desktop_config.json` (linux).
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Restart Claude Desktop. The connector panel should show 9 🔧 tools and 3 📄 resources.
+
+---
+
+### 2. Cursor
+
+`.cursor/mcp.json` in your workspace (per-project) or `~/.cursor/mcp.json` (global).
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Cursor Settings → Features → MCP. Click **Refresh** if the server doesn't appear.
+
+---
+
+### 3. Cline
+
+VSCode extension. Open the Cline sidebar → ⚙️ Settings → **MCP Servers** → **Configure MCP Servers** → edit `cline_mcp_settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" },
+      "disabled": false
+    }
+  }
+}
+```
+
+Cline auto-reloads the file on save. Memory tools appear under the 🔧 icon in chat.
+
+---
+
+### 4. Continue
+
+`~/.continue/config.yaml` (YAML; Continue 1.0+):
+
+```yaml
+mcpServers:
+  - name: agentmemory
+    command: npx
+    args:
+      - tsx
+      - /absolute/path/to/agentmemory/mcp/index.ts
+    env:
+      AGENTMEMORY_HOME: /absolute/path/to/storage
+```
+
+For cloud mode, replace with `transport: http` + `url` + `headers` (see [Continue MCP docs](https://docs.continue.dev/features/mcp)).
+
+---
+
+### 5. Roo Code
+
+`.roo/mcp.json` in your workspace, or via Roo sidebar → MCP → **Edit Global MCP**:
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+---
+
+### 6. Kilo Code
+
+Kilo is a fork of OpenCode, so the same schema works. Open the Kilo sidebar → MCP Servers → **Edit Global MCP**, or `.kilocode/mcp.json` in your workspace:
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+For cloud mode, swap the entry for `{ "url": "https://...", "headers": { "Authorization": "Bearer ..." } }`.
+
+---
+
+### 7. Windsurf
+
+`~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Windsurf Settings → Cascade → **MCP Servers** shows it after restart.
+
+---
+
+### 8. Zed
+
+`~/.config/zed/settings.json` (note: Zed uses `context_servers`, **not** `mcpServers`):
+
+```json
+{
+  "context_servers": {
+    "agentmemory": {
+      "command": {
+        "path": "npx",
+        "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+        "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+      }
+    }
+  }
+}
+```
+
+For cloud mode, use `"settings": { "url": "https://...", "headers": { "Authorization": "Bearer ..." } }` instead of `command`. See [Zed context servers docs](https://zed.dev/docs/assistant/context-servers).
+
+---
+
+### 9. Aider
+
+Aider 0.73+ added MCP. Pass the server on the command line (one `--mcp-server` per server):
+
+```bash
+aider --mcp-server "npx tsx /absolute/path/to/agentmemory/mcp/index.ts AGENTMEMORY_HOME=/path/to/storage"
+```
+
+Or in `~/.aider.conf.yml`:
+
+```yaml
+mcp-servers: |
+  agentmemory: npx tsx /absolute/path/to/agentmemory/mcp/index.ts AGENTMEMORY_HOME=/path/to/storage
+```
+
+Aider lists available tools at startup; reference them in chat with `/tool agentmemory__add_memory ...`.
+
+---
+
+### 10. Goose
+
+`~/.config/goose/config.yaml` — `extensions` is Goose's term for MCP servers:
+
+```yaml
+extensions:
+  agentmemory:
+    type: stdio
+    cmd: npx
+    args: ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"]
+    envs:
+      AGENTMEMORY_HOME: /absolute/path/to/storage
+    enabled: true
+```
+
+Cloud mode: set `type: streamable_http`, `uri: https://your-app.vercel.app/mcp`, `headers.Authorization: "Bearer <jwt>"`, `envs: {}`.
+
+---
+
+### 11. Warp
+
+Warp Drive → **Settings → AI → Manage MCP Servers → + Add**:
+
+| Field | Value |
+| ----- | ----- |
+| Name | `agentmemory` |
+| Command | `npx tsx /absolute/path/to/agentmemory/mcp/index.ts` |
+| Env | `AGENTMEMORY_HOME=/absolute/path/to/storage` |
+
+Warp also supports `~/.warp/mcp_config.json` for sync across machines — same `mcpServers` schema as Claude Desktop.
+
+---
+
+### 12. OpenAI Codex CLI
+
+`~/.codex/config.toml`:
+
+```toml
+[mcp_servers.agentmemory]
+command = "npx"
+args = ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"]
+env = { AGENTMEMORY_HOME = "/absolute/path/to/storage" }
+```
+
+For cloud, swap the table for:
+
+```toml
+[mcp_servers.agentmemory]
+url = "https://your-app.vercel.app/mcp"
+http_headers = { Authorization = "Bearer <supabase-jwt>" }
+```
+
+Verify with `codex mcp list`.
+
+---
+
+### 13. Google Gemini CLI
+
+`~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Trusted by default if `trust: true` is set per-server. See [Gemini CLI MCP docs](https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md).
+
+---
+
+### 14. GitHub Copilot CLI
+
+The new `copilot` CLI (replaces the old `gh copilot`). `~/.config/github-copilot/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Or inline at runtime: `copilot --additional-mcp-config @/absolute/path/to/config.json`. Tools are auto-prefixed `agentmemory__` in chat.
+
+---
+
+### 15. Qwen Code CLI
+
+Alibaba's `qwen` CLI (Qwen3-Coder). `~/.qwen/settings.json` (or `~/.qwen-cli/settings.json` depending on the build):
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+---
+
+### 16. Google Antigravity
+
+`.antigravity/mcp.json` in your workspace (per-project) or `~/.antigravity/mcp.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Cloud mode: replace with `{ "url": "https://your-app.vercel.app/mcp", "headers": { "Authorization": "Bearer <supabase-jwt>" } }`. Antigravity picks up the file on workspace open.
+
+---
+
+### 17. AWS Kiro
+
+`.kiro/settings/mcp.json` in your workspace (per-project) or `~/.kiro/settings/mcp.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Kiro Settings → MCP Servers shows a refresh button if the server is unreachable.
+
+---
+
+### 18. Droid (Factory)
+
+`~/.droid/mcp.json` (global) or `.factory/mcp.json` (per-project):
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Run `droid mcp list` to verify it loaded. In TUI, use `@agentmemory` to invoke tools.
+
+---
+
+### 19. OpenCode
+
+`opencode.json` in your project root, or `~/.config/opencode/config.json` for global:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "agentmemory": {
+      "type": "local",
+      "command": ["npx", "tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "environment": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" },
+      "enabled": true
+    }
+  }
+}
+```
+
+For cloud mode, swap to `"type": "remote"`, `"url": "https://your-app.vercel.app/mcp"`, `"headers": { "Authorization": "Bearer <supabase-jwt>" }`. Reference in prompts with `use the agentmemory tool`.
+
+---
+
+### 20. OpenClaw & pi-mono
+
+These are personal AI assistants, not coding IDEs — they accept MCP servers as **skills** so AgentMemory becomes the assistant's long-term memory.
+
+**OpenClaw** — `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Restart the gateway with `openclaw gateway restart`. In Telegram/WhatsApp/Discord, the assistant now has persistent memory across sessions — say "remember that I prefer dark mode" and it sticks.
+
+**pi-mono** (`pi` CLI by Mario Zechner) — `~/.pi/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/agentmemory/mcp/index.ts"],
+      "env": { "AGENTMEMORY_HOME": "/absolute/path/to/storage" }
+    }
+  }
+}
+```
+
+Run `pi` and ask the agent to `search_memories` for prior context.
+
+---
+
+### Troubleshooting
+
+| Symptom | Fix |
+| ------- | --- |
+| `ENOENT` on `mcp/index.ts` | Use an absolute path; `~` doesn't expand inside the JSON |
+| `command not found: tsx` | `npm i -g tsx`, or replace `npx tsx` with `node --import tsx` |
+| Tools never appear | Restart the client. Some (Cline, Kilo, Roo) need explicit "enable" toggle |
+| `401 Unauthorized` on cloud | JWT expired; re-copy from the web UI's DevTools `localStorage` |
+| `429 Too Many Requests` on cloud | Hit `RATE_LIMIT_PER_HOUR`; wait or back off via `backfill_embeddings` |
+| `Cannot find module '@modelcontextprotocol/...'` | `npm install` in the agentmemory repo root |
 
 ## Features
 
