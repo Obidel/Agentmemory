@@ -274,6 +274,7 @@ alter table public.api_rate_limits enable row level security;
 
 -- Users can read their own row (to show "X/100 used" in UI later) but
 -- can never write directly. Only the consume_rate_limit RPC mutates it.
+drop policy if exists "read own rate limit" on public.api_rate_limits;
 create policy "read own rate limit"
   on public.api_rate_limits for select
   using (auth.uid() = user_id);
