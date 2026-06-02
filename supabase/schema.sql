@@ -5,6 +5,10 @@
 -- ─── Extensions ──────────────────────────────────────────────────────
 create extension if not exists "pgcrypto";
 create extension if not exists "pg_trgm";
+-- pgvector is included in every Supabase project; if the line below errors
+-- with "extension vector is not allow-listed", enable it under
+-- Database → Extensions → "vector" first, then re-run this script.
+create extension if not exists "vector";
 
 -- ─── profiles (1:1 with auth.users) ─────────────────────────────────
 create table if not exists public.profiles (
@@ -94,6 +98,15 @@ create index if not exists memories_project_idx  on public.memories(project_id);
 create index if not exists memories_category_idx on public.memories(category);
 create index if not exists memories_content_trgm on public.memories using gin (content gin_trgm_ops);
 create index if not exists memories_tags_gin     on public.memories using gin (tags);
+
+-- ─── pgvector embeddings (384-dim, all-MiniLM-L6-v2 via HF Inference) ───
+-- The serverless MCP generates these and the web client sends them along on
+-- add. Memories without an embedding are filtered out of semantic search.
+alter table public.memories
+  add column if not exists embedding vector(384);
+
+create index if not exists memories_embedding_hnsw
+  on public.memories using hnsw (embedding vector_cosine_ops);
 
 -- ─── Decay / access tracking (borrowed from rohitg00/agentmemory) ─────
 alter table public.memories
@@ -187,30 +200,39 @@ as $$
   limit p_limit;
 $$;
 
--- Vector-search fallback: returns memories whose content is lexically close
--- AND that are still 'hot' enough to be worth surfacing. The client fuses the
--- result with BM25 + graph via RRF.
-create or replace function public.vector_search_memories(
-  p_query      text,
-  p_limit      int default 20
+-- Vector-search via pgvector (cosine distance). Takes a pre-computed 384-dim
+-- query embedding; the serverless MCP calls HuggingFace Inference API to
+-- generate it. Falls back gracefully (returns no rows) when memories have
+-- no embedding yet.
+create or replace function public.semantic_search_memories(
+  p_query_embedding vector(384),
+  p_project         text    default null,
+  p_category        text    default null,
+  p_limit           int     default 20
 )
 returns table (
   id           text,
   project_name text,
   content      text,
   category     text,
+  importance   int,
+  tags         text[],
+  source       text,
+  created_at   timestamptz,
   score        real
 )
 language sql
 stable
 as $$
   select
-    m.id, m.project_name, m.content, m.category,
-    similarity(m.content, p_query) as score
+    m.id, m.project_name, m.content, m.category, m.importance, m.tags, m.source, m.created_at,
+    1 - (m.embedding <=> p_query_embedding) as score
   from public.memories m
   where m.user_id = auth.uid()
-    and m.is_latest = true
-  order by m.content <-> p_query
+    and m.embedding is not null
+    and (p_project  is null or m.project_name = p_project)
+    and (p_category is null or m.category    = p_category)
+  order by m.embedding <=> p_query_embedding
   limit p_limit;
 $$;
 

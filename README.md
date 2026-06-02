@@ -74,17 +74,21 @@ Memories follow an exponential decay curve (`strength = 0.5^(days/30) × importa
 - `MemoryCard` calls `touchMemory(id)` on mount, bumping `access_count` and refreshing `last_accessed_at`.
 - Survives across all backends: local (zustand), Supabase (Postgres `strength` column + `runAutoForget` from `useAuth`).
 
-### Hybrid search (BM25 + RRF)
+### Hybrid search (BM25 + Vector + Graph via RRF)
 
-Two free, on-device sources fuse via Reciprocal Rank Fusion (`k=60`) in `src/utils/rrf.ts`:
+Three sources fuse via Reciprocal Rank Fusion (`k=60`) in `src/utils/rrf.ts`:
 
-- **BM25** (weight 0.4) — Porter-stemmed inverted index, k1=1.2, b=0.75. Source: `src/utils/bm25.ts`.
-- **Vector cosine** (weight 0.6) — 20-dim feature-hash embeddings (LLM-free). Source: `src/utils/memoryDecay.ts::jaccard` neighborhood.
-- **Graph** (weight 0.3) — 1-hop expansion via the `relations` table. Only active on the Supabase backend.
+| Source | Weight | Where it runs | Implementation |
+| --- | --- | --- | --- |
+| **Vector** (cosine) | 0.6 | Server (cloud) / local | pgvector + HuggingFace Inference API, 384-dim MiniLM-L6-v2 (free, no credit card) |
+| **BM25** | 0.4 | Both | pg_trgm trigram similarity (server) or Porter-stemmed inverted index (local) |
+| **Graph** | 0.3 | Both | 1-hop expansion through `relations` table (server) or in-memory edges (local) |
 
-Top results from each source are joined with `RRF(d) = Σᵢ wᵢ / (k + rankᵢ(d))` and the top-N are returned. The BM25 index caches by `(count, max(updated_at))` and invalidates on every add/update/delete/auto-forget.
+Top results from each source are joined with `RRF(d) = Σᵢ wᵢ / (k + rankᵢ(d))` and the top-N are returned. The local BM25 index caches by `(count, max(updated_at))` and invalidates on every add/update/delete/auto-forget.
 
-For the cloud backend, `search_memories` is a server-side `pg_trgm` similarity function (see `supabase/schema.sql`); the Supabase client in `mcp/backends/supabase.ts` calls it and fuses with graph expansion in app code.
+**Enabling semantic search on the cloud MCP** — sign up at [huggingface.co](https://huggingface.co) (free), grab a read-token at <https://huggingface.co/settings/tokens>, and set `HUGGINGFACE_API_KEY` on Vercel. The serverless handler in `api/mcp.ts` instantiates `createHuggingFaceEmbedder(token)` and injects it into the `SupabaseBackend`. On `add_memory` the content is embedded and stored as `vector(384)`; on `search_memories` the query is embedded and the `semantic_search_memories` RPC does cosine search via the HNSW index.
+
+Without the key, the server still works — it just skips the vector source and the RRF becomes 2-way (BM25 + graph).
 
 ### JSONL import from Claude Code sessions
 
@@ -118,8 +122,10 @@ Run your own private sync backend in ~5 minutes.
 
 1. Go to [supabase.com](https://supabase.com) → **New project**
 2. Once provisioned, open **SQL Editor** → paste the contents of [`supabase/schema.sql`](./supabase/schema.sql) → **Run**
+   - The schema enables the **pgvector** extension and creates the `embedding vector(384)` column + HNSW index on the first run
 3. In **Authentication → Providers**, enable **Email** (magic link) and **GitHub** (optional)
 4. In **Settings → API**, copy your `Project URL` and `anon` key
+5. (Optional, for semantic search) Sign up at [huggingface.co](https://huggingface.co) and create a read-token at <https://huggingface.co/settings/tokens>
 
 ### 2. Configure environment
 
@@ -130,6 +136,8 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=eyJhbGc...
+# Optional: enables pgvector semantic search via HuggingFace Inference API (free tier)
+HUGGINGFACE_API_KEY=hf_xxxxxxxxxxxxxxxxxxxxxxxx
 # Service role key NOT used — RLS scopes everything to auth.uid()
 ```
 
@@ -187,9 +195,10 @@ src/
 
 mcp/
   server.ts                   # Transport-agnostic MCP server (9 tools + 3 resources)
+  embeddings.ts               # HuggingFace Inference API wrapper (MiniLM-L6-v2, 384-dim)
   backends/
     local.ts                  # Reads/writes the zustand store on disk
-    supabase.ts               # RRF search + relations, RLS-scoped via caller's JWT
+    supabase.ts               # RRF search (BM25+vector+graph), embeds on add, RLS-scoped via caller's JWT
   index.ts                    # Stdio entrypoint (uses LocalBackend)
 
 api/

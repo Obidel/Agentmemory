@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from '../mcp/server.js';
 import { SupabaseBackend } from '../mcp/backends/supabase.js';
+import { createHuggingFaceEmbedder } from '../mcp/embeddings.js';
 
 /**
  * Vercel serverless entry point for the MCP server.
@@ -13,9 +14,10 @@ import { SupabaseBackend } from '../mcp/backends/supabase.js';
  * passed to Supabase as the user's session, so RLS policies enforce that
  * each user only sees/modifies their own memories.
  *
- * Configure on Vercel: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
- * (the service role key is unused here but kept for parity with future server
- * utilities like admin reporting).
+ * Configure on Vercel:
+ *   SUPABASE_URL, SUPABASE_ANON_KEY   — RLS-scoped DB
+ *   HUGGINGFACE_API_KEY                — free tier at huggingface.co, enables pgvector search
+ *                                         (server still works without it, but falls back to BM25+graph only)
  */
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -57,7 +59,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
 
   // ─── Build a one-shot server bound to this user's JWT ──────────────
-  const backend = new SupabaseBackend(supabaseUrl, supabaseAnonKey, jwt);
+  const embedder = createHuggingFaceEmbedder(process.env.HUGGINGFACE_API_KEY);
+  const backend = new SupabaseBackend(supabaseUrl, supabaseAnonKey, jwt, embedder);
   const server = createServer(backend);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless mode
