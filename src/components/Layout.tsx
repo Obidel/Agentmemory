@@ -49,26 +49,36 @@ export default function Layout({ children }: LayoutProps) {
     ? { label: 'Cloud', gradient: 'from-cyan-500/20 to-indigo-500/20 text-cyan-200 border-cyan-400/30' }
     : { label: 'MIT',   gradient: 'from-slate-500/20 to-slate-600/20 text-slate-300 border-slate-500/30' };
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     if (signingOut) return;
     if (!window.confirm('Sign out and clear local cloud data?')) return;
     setSigningOut(true);
-    try {
-      if (supabase) {
-        // scope: 'global' kills the session in every tab, not just this one
-        const { error } = await supabase.auth.signOut({ scope: 'global' });
-        if (error) console.error('Supabase signOut error:', error);
-      } else {
-        console.warn('Supabase not configured, clearing local state only');
-      }
-    } catch (err) {
-      console.error('Sign out failed:', err);
-    } finally {
-      // Always clear local state, even if the network call failed —
-      // the user clicked sign out, so we shouldn't leak cloud data.
-      setCloudUser(null);
+    // Clear local state SYNCHRONOUSLY first so the UI reacts instantly.
+    // The user clicked sign out — local data must be wiped regardless of
+    // whether the Supabase call succeeds, hangs, or errors.
+    setCloudUser(null);
+    if (!supabase) {
       setSigningOut(false);
+      return;
     }
+    // Fire-and-forget with a 3s timeout. If supabase.auth.signOut() hangs
+    // (bad network, invalid env, scope unsupported), we don't want to leave
+    // the UI stuck in signingOut=true forever.
+    const timeout = window.setTimeout(() => {
+      console.warn('Supabase signOut timed out after 3s, ignoring');
+      setSigningOut(false);
+    }, 3000);
+    supabase.auth.signOut({ scope: 'global' })
+      .then(({ error }) => {
+        if (error) console.error('Supabase signOut error:', error);
+      })
+      .catch((err) => {
+        console.error('Supabase signOut threw:', err);
+      })
+      .finally(() => {
+        window.clearTimeout(timeout);
+        setSigningOut(false);
+      });
   };
 
   if (isLandingPage) {
