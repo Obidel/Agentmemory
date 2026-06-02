@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+dist-mcp/
+dist-server/
+.vercel/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Local storage (MCP file persistence)
+.agentmemory/
+.agentmemory-*/
+
+# Polar/Supabase local dev
+.supabase/
+
+# Original source archive
+build-agentmemoryfyi-web-application.zip

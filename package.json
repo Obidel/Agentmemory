@@ -1,0 +1,50 @@
+{
+  "name": "react-vite-tailwind",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "mcp": "tsx mcp/index.ts",
+    "build:mcp": "tsc -p tsconfig.mcp.json",
+    "start:mcp": "node --experimental-specifier-resolution=node dist-mcp/mcp/index.js",
+    "server": "tsx server/polar-handler.ts",
+    "build:server": "tsc -p tsconfig.server.json",
+    "start:server": "node --experimental-specifier-resolution=node dist-server/server/polar-handler.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@types/d3": "^7.4.3",
+    "clsx": "2.1.1",
+    "d3": "^7.9.0",
+    "date-fns": "^4.4.0",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.17.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-dropzone": "^15.0.0",
+    "react-router-dom": "^7.16.0",
+    "tailwind-merge": "3.4.0",
+    "zod": "^3.23.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.17",
+    "@types/node": "22.19.17",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vercel/node": "^5.0.0",
+    "@vitejs/plugin-react": "5.1.1",
+    "tailwindcss": "4.1.17",
+    "tsx": "^4.19.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.2",
+    "vite-plugin-singlefile": "2.3.0"
+  },
+  "dependencies_optional": {
+    "@supabase/supabase-js": "^2.45.0",
+    "standardwebhooks": "^1.0.0"
+  }
+}

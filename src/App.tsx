@@ -1,0 +1,50 @@
+import { HashRouter, Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import GraphPage from './pages/GraphPage';
+import ImportPage from './pages/ImportPage';
+import SearchPage from './pages/SearchPage';
+import ExportPage from './pages/ExportPage';
+import TemplatesPage from './pages/TemplatesPage';
+import PricingPage from './pages/PricingPage';
+import LandingPage from './pages/LandingPage';
+
+function NotFound() {
+  return (
+    <div className="flex flex-col items-center justify-center h-96 text-center px-6">
+      <div className="text-6xl mb-4">🧠</div>
+      <h2 className="text-2xl font-bold text-white mb-2">Memory Not Found</h2>
+      <p className="text-gray-400 mb-6">This page doesn't exist in our memory bank.</p>
+      <a href="/" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">
+        Go to Dashboard
+      </a>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="/landing" element={<LandingPage />} />
+        <Route
+          path="/*"
+          element={
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/graph" element={<GraphPage />} />
+                <Route path="/import" element={<ImportPage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/export" element={<ExportPage />} />
+                <Route path="/templates" element={<TemplatesPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Layout>
+          }
+        />
+      </Routes>
+    </HashRouter>
+  );
+}
