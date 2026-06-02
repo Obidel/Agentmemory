@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Brain, Search, Network, Upload, Download, BookTemplate,
   ChevronDown, Plus, Settings, Menu, X, LogIn, LogOut,
@@ -26,6 +26,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { currentUser, projects, activeProject, setActiveProject, addProject, memories, isCloud, syncing, lastSyncedAt, pullFromCloud, setCloudUser } = useMemoryStore();
   const { theme, toggle: toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -57,6 +58,7 @@ export default function Layout({ children }: LayoutProps) {
     // The user clicked sign out — local data must be wiped regardless of
     // whether the Supabase call succeeds, hangs, or errors.
     setCloudUser(null);
+    navigate('/auth');
     if (!supabase) {
       setSigningOut(false);
       return;
