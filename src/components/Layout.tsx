@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Brain, Search, Network, Upload, Download, BookTemplate,
-  ChevronDown, Plus, Settings, Menu, X,
-  Folder
+  ChevronDown, Plus, Settings, Menu, X, LogIn, LogOut,
+  RefreshCw, Folder
 } from 'lucide-react';
 import { useMemoryStore } from '../store/memoryStore';
+import { supabase, supabaseEnabled } from '../lib/supabase';
 import { cn } from '../utils/cn';
 
 const NAV_ITEMS = [
@@ -23,7 +24,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const { currentUser, projects, activeProject, setActiveProject, addProject, memories } = useMemoryStore();
+  const { currentUser, projects, activeProject, setActiveProject, addProject, memories, isCloud, syncing, lastSyncedAt, pullFromCloud, setCloudUser } = useMemoryStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -40,10 +41,14 @@ export default function Layout({ children }: LayoutProps) {
     }
   };
 
-  const planBadge = {
-    free:    { label: 'MIT',   gradient: 'from-slate-500/20 to-slate-600/20 text-slate-300 border-slate-500/30' },
-    sponsor: { label: '♥',     gradient: 'from-pink-500/20 to-violet-500/20 text-pink-200 border-pink-400/30' },
-  }[currentUser.plan];
+  const planBadge = isCloud
+    ? { label: 'Cloud', gradient: 'from-cyan-500/20 to-indigo-500/20 text-cyan-200 border-cyan-400/30' }
+    : { label: 'MIT',   gradient: 'from-slate-500/20 to-slate-600/20 text-slate-300 border-slate-500/30' };
+
+  const handleSignOut = async () => {
+    if (supabase) await supabase.auth.signOut();
+    setCloudUser(null);
+  };
 
   if (isLandingPage) {
     return <>{children}</>;
@@ -222,19 +227,54 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* User */}
         <div className="px-3 py-3 border-t border-white/5">
-          <div className="flex items-center gap-3">
-            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 via-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold text-white">
-              {currentUser.name.charAt(0)}
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0a0a1a]" />
+          {supabaseEnabled && !isCloud ? (
+            <Link
+              to="/auth"
+              className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 hover:from-cyan-500/30 hover:to-indigo-500/30 border border-cyan-500/30 text-cyan-200 transition-colors"
+            >
+              <LogIn size={13} /> Sign in to sync across devices
+            </Link>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 via-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold text-white">
+                {currentUser.name.charAt(0)}
+                <div className={cn(
+                  'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0a1a]',
+                  syncing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
+                )} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-100 truncate">{currentUser.name}</p>
+                <p className="text-[10px] text-gray-500 truncate font-mono">
+                  {isCloud && lastSyncedAt
+                    ? `Synced ${new Date(lastSyncedAt).toLocaleTimeString()}`
+                    : isCloud ? 'Cloud' : 'Local'}
+                </p>
+              </div>
+              {isCloud ? (
+                <>
+                  <button
+                    onClick={() => void pullFromCloud()}
+                    className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5"
+                    title="Sync now"
+                  >
+                    <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+                  </button>
+                  <button
+                    onClick={handleSignOut}
+                    className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5"
+                    title="Sign out"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </>
+              ) : (
+                <button className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5">
+                  <Settings size={14} />
+                </button>
+              )}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-100 truncate">{currentUser.name}</p>
-              <p className="text-[10px] text-gray-500 truncate font-mono">{currentUser.email}</p>
-            </div>
-            <button className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5">
-              <Settings size={14} />
-            </button>
-          </div>
+          )}
         </div>
       </aside>
 

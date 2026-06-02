@@ -8,6 +8,8 @@ import ExportPage from './pages/ExportPage';
 import TemplatesPage from './pages/TemplatesPage';
 import SupportPage from './pages/SupportPage';
 import LandingPage from './pages/LandingPage';
+import AuthPage from './pages/AuthPage';
+import { useAuth } from './hooks/useAuth';
 
 function NotFound() {
   return (
@@ -23,9 +25,11 @@ function NotFound() {
 }
 
 export default function App() {
+  useAuth();
   return (
     <HashRouter>
       <Routes>
+        <Route path="/auth" element={<AuthPage />} />
         <Route path="/landing" element={<LandingPage />} />
         <Route
           path="/*"

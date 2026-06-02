@@ -16,5 +16,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["mcp/**/*.ts", "src/**/*.ts"]
+  "include": ["mcp/**/*.ts", "api/**/*.ts", "src/**/*.ts"]
 }

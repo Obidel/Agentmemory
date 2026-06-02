@@ -23,6 +23,9 @@ export const SOURCE_ICONS: Record<MemorySource, string> = {
   manual: '✍️',
   import: '📥',
   template: '📋',
+  conversation: '💬',
+  imported: '📦',
+  agent: '🛰️',
 };
 
 export const SOURCE_COLORS: Record<MemorySource, string> = {
@@ -32,10 +35,13 @@ export const SOURCE_COLORS: Record<MemorySource, string> = {
   manual: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
   import: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
   template: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+  conversation: 'bg-violet-500/20 text-violet-300 border-violet-500/30',
+  imported: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+  agent: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
 };
 
 export const CATEGORIES: MemoryCategory[] = ['architecture', 'preference', 'constraint', 'context', 'decision'];
-export const SOURCES: MemorySource[] = ['claude', 'cursor', 'copilot', 'manual', 'import', 'template'];
+export const SOURCES: MemorySource[] = ['claude', 'cursor', 'copilot', 'manual', 'import', 'template', 'conversation', 'imported', 'agent'];
 
 export const TEMPLATES: Template[] = [
   {

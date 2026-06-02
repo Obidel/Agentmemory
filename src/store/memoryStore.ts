@@ -277,6 +277,9 @@ interface MemoryStore {
   currentUser: User;
   activeProject: string;
   projects: string[];
+  isCloud: boolean;
+  syncing: boolean;
+  lastSyncedAt: string | null;
 
   addMemory: (memory: Omit<Memory, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Memory;
   updateMemory: (id: string, updates: Partial<Memory>) => void;
@@ -289,6 +292,11 @@ interface MemoryStore {
   getMemoriesByProject: (project: string) => Memory[];
   searchMemories: (query: string, category?: MemoryCategory, source?: MemorySource) => Memory[];
   getSimilarMemories: (memoryId: string) => Memory[];
+
+  setCloudUser: (user: User | null) => void;
+  pullFromCloud: () => Promise<void>;
+  pushMemoryToCloud: (m: Memory) => Promise<void>;
+  deleteMemoryFromCloud: (id: string) => Promise<void>;
 }
 
 export const useMemoryStore = create<MemoryStore>()(
@@ -299,6 +307,9 @@ export const useMemoryStore = create<MemoryStore>()(
       currentUser: DEMO_USER,
       activeProject: 'My React App',
       projects: ['My React App', 'API Service'],
+      isCloud: false,
+      syncing: false,
+      lastSyncedAt: null,
 
       addMemory: (memoryData) => {
         const now = new Date().toISOString();
@@ -319,22 +330,30 @@ export const useMemoryStore = create<MemoryStore>()(
           set(state => ({ relations: [...state.relations, ...newRelations] }));
         }
 
+        if (get().isCloud) {
+          void get().pushMemoryToCloud(newMemory);
+        }
+
         return newMemory;
       },
 
       updateMemory: (id, updates) => {
+        let updated: Memory | undefined;
         set(state => ({
-          memories: state.memories.map(m =>
-            m.id === id
-              ? {
-                  ...m,
-                  ...updates,
-                  updated_at: new Date().toISOString(),
-                  embedding: updates.content ? simpleEmbedding(updates.content) : m.embedding,
-                }
-              : m
-          ),
+          memories: state.memories.map(m => {
+            if (m.id !== id) return m;
+            updated = {
+              ...m,
+              ...updates,
+              updated_at: new Date().toISOString(),
+              embedding: updates.content ? simpleEmbedding(updates.content) : m.embedding,
+            };
+            return updated;
+          }),
         }));
+        if (updated && get().isCloud) {
+          void get().pushMemoryToCloud(updated);
+        }
       },
 
       deleteMemory: (id) => {
@@ -342,6 +361,9 @@ export const useMemoryStore = create<MemoryStore>()(
           memories: state.memories.filter(m => m.id !== id),
           relations: state.relations.filter(r => r.from_memory_id !== id && r.to_memory_id !== id),
         }));
+        if (get().isCloud) {
+          void get().deleteMemoryFromCloud(id);
+        }
       },
 
       addRelation: (relation) => {
@@ -408,6 +430,56 @@ export const useMemoryStore = create<MemoryStore>()(
           .filter((m): m is Memory & { similarity: number } => (m as Memory & { similarity: number }).similarity > 0.5)
           .sort((a, b) => b.similarity - a.similarity)
           .slice(0, 5);
+      },
+
+      setCloudUser: (user) => {
+        if (user) {
+          set({ currentUser: user, isCloud: true });
+        } else {
+          set({ currentUser: DEMO_USER, isCloud: false });
+        }
+      },
+
+      pullFromCloud: async () => {
+        if (!get().isCloud) return;
+        const { pullAllFromCloud } = await import('../lib/cloudSync');
+        set({ syncing: true });
+        try {
+          const { memories, relations, projects } = await pullAllFromCloud();
+          set({
+            memories: memories.length ? memories : seedMemoriesWithEmbeddings,
+            relations,
+            projects: projects.length ? projects : ['My React App', 'API Service'],
+            activeProject: projects[0] || 'My React App',
+            lastSyncedAt: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.error('agentmemory: pullFromCloud failed', err);
+        } finally {
+          set({ syncing: false });
+        }
+      },
+
+      pushMemoryToCloud: async (m) => {
+        if (!get().isCloud) return;
+        const { pushToCloud } = await import('../lib/cloudSync');
+        try {
+          await pushToCloud(m);
+          set({ lastSyncedAt: new Date().toISOString() });
+        } catch (err) {
+          console.error('agentmemory: pushMemoryToCloud failed', err);
+        }
+      },
+
+      deleteMemoryFromCloud: async (id) => {
+        if (!get().isCloud) return;
+        const { deleteFromCloud } = await import('../lib/cloudSync');
+        try {
+          await deleteFromCloud(id);
+          set({ lastSyncedAt: new Date().toISOString() });
+        } catch (err) {
+          console.error('agentmemory: deleteMemoryFromCloud failed', err);
+        }
       },
     }),
     {
