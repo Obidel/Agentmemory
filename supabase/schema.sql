@@ -157,7 +157,9 @@ create policy "relations_all_own"
 -- short queries; the client fuses it with vector + graph via RRF.
 create or replace function public.search_memories(
   p_query      text,
-  p_limit      int default 20
+  p_limit      int default 20,
+  p_project    text default null,
+  p_category   text default null
 )
 returns table (
   id           text,
@@ -179,6 +181,8 @@ as $$
   from public.memories m
   where m.user_id = auth.uid()
     and (p_query = '' or m.content % p_query or m.content ilike '%' || p_query || '%')
+    and (p_project  is null or m.project_name = p_project)
+    and (p_category is null or m.category    = p_category)
   order by score desc, m.created_at desc
   limit p_limit;
 $$;

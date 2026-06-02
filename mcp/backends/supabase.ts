@@ -100,14 +100,79 @@ export class SupabaseBackend implements MemoryBackend {
   }
 
   async searchMemories(input: { query: string; project?: string; category?: MemoryCategory; limit?: number }): Promise<Memory[]> {
-    let q = this.sb.from('memories').select('*').order('created_at', { ascending: false });
-    if (input.project)   q = q.eq('project_name', input.project);
-    if (input.category)  q = q.eq('category', input.category);
-    q = q.ilike('content', `%${input.query}%`);
-    if (input.limit) q = q.limit(input.limit);
-    const { data, error } = await q;
-    if (error) throw error;
-    return (data as MemoryRow[]).map(this.rowToMemory);
+    const limit = input.limit ?? 10;
+    const query = input.query ?? '';
+    if (!query.trim()) {
+      return this.listMemories({ project: input.project, category: input.category }).then(m => m.slice(0, limit));
+    }
+
+    // 1. BM25 source: pg_trgm similarity (server-side, RLS-scoped)
+    const { data: bm25Rows, error: bm25Err } = await this.sb.rpc('search_memories', {
+      p_query: query,
+      p_limit: Math.max(limit * 2, 20),
+      p_project: input.project ?? null,
+      p_category: input.category ?? null,
+    });
+    if (bm25Err) throw bm25Err;
+    const bm25List = (bm25Rows ?? []) as Array<{ id: string; score: number; [k: string]: unknown }>;
+    const bm25Ranks = new Map<string, number>();
+    bm25List.forEach((r, i) => bm25Ranks.set(r.id, i + 1));
+
+    // 2. Graph source: 1-hop neighbours of top-3 BM25 hits via relations table
+    const seedIds = bm25List.slice(0, 3).map(r => r.id);
+    let graphIds: string[] = [];
+    if (seedIds.length > 0) {
+      const { data: rels, error: relErr } = await this.sb
+        .from('relations')
+        .select('from_memory_id, to_memory_id')
+        .or(`from_memory_id.in.(${seedIds.join(',')}),to_memory_id.in.(${seedIds.join(',')})`);
+      if (relErr) throw relErr;
+      const related = new Set<string>();
+      for (const r of (rels ?? []) as Array<{ from_memory_id: string; to_memory_id: string }>) {
+        if (!seedIds.includes(r.from_memory_id)) related.add(r.from_memory_id);
+        if (!seedIds.includes(r.to_memory_id))   related.add(r.to_memory_id);
+      }
+      graphIds = [...related].filter(id => !bm25Ranks.has(id));
+    }
+
+    let graphRanks = new Map<string, number>();
+    if (graphIds.length > 0) {
+      const { data: graphRows, error: gErr } = await this.sb
+        .from('memories')
+        .select('*')
+        .in('id', graphIds);
+      if (gErr) throw gErr;
+      (graphRows ?? []).forEach((row, i) => graphRanks.set((row as MemoryRow).id, i + 1));
+    }
+
+    // 3. RRF fusion (k=60, weights: BM25=0.6, graph=0.3)
+    const K = 60;
+    const W_BM25 = 0.6;
+    const W_GRAPH = 0.3;
+    const scores = new Map<string, number>();
+    const allIds = new Set<string>([...bm25Ranks.keys(), ...graphRanks.keys()]);
+    for (const id of allIds) {
+      const bm25Rank = bm25Ranks.get(id);
+      const graphRank = graphRanks.get(id);
+      let s = 0;
+      if (bm25Rank)  s += W_BM25  * (1 / (K + bm25Rank));
+      if (graphRank) s += W_GRAPH * (1 / (K + graphRank));
+      scores.set(id, s);
+    }
+
+    // 4. Fetch full memory rows for the winners (preserves category/project filters via IN)
+    const winnerIds = [...scores.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([id]) => id);
+    if (winnerIds.length === 0) return [];
+    const { data: winners, error: wErr } = await this.sb
+      .from('memories')
+      .select('*')
+      .in('id', winnerIds);
+    if (wErr) throw wErr;
+    const byId = new Map((winners as MemoryRow[]).map(r => [r.id, this.rowToMemory(r)]));
+    return winnerIds.map(id => byId.get(id)!).filter(Boolean);
   }
 
   async listMemories(input: { project?: string; category?: MemoryCategory }): Promise<Memory[]> {
