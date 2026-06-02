@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Brain, Search, Network, Upload, Download, BookTemplate,
   ChevronDown, Plus, Settings, Menu, X, LogIn, LogOut,
-  RefreshCw, Folder
+  RefreshCw, Folder, Sparkles
 } from 'lucide-react';
 import { useMemoryStore } from '../store/memoryStore';
 import { supabase, supabaseEnabled } from '../lib/supabase';
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { path: '/import', label: 'Import', icon: Upload },
   { path: '/export', label: 'Export', icon: Download },
   { path: '/templates', label: 'Templates', icon: BookTemplate },
+  { path: '/backfill', label: 'Backfill', icon: Sparkles, cloudOnly: true },
 ];
 
 interface LayoutProps {
@@ -171,7 +172,8 @@ export default function Layout({ children }: LayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
           <div className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-2 px-3">Navigation</div>
-          {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
+          {NAV_ITEMS.map(({ path, label, icon: Icon, cloudOnly }) => {
+            if (cloudOnly && !isCloud) return null;
             const isActive = location.pathname === path;
             return (
               <Link

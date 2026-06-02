@@ -8,6 +8,7 @@ import SearchPage from './pages/SearchPage';
 import ExportPage from './pages/ExportPage';
 import TemplatesPage from './pages/TemplatesPage';
 import SupportPage from './pages/SupportPage';
+import BackfillPage from './pages/BackfillPage';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import { useAuth } from './hooks/useAuth';
@@ -49,6 +50,7 @@ export default function App() {
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/export" element={<ExportPage />} />
                 <Route path="/templates" element={<TemplatesPage />} />
+                <Route path="/backfill" element={<BackfillPage />} />
                 <Route path="/support" element={<SupportPage />} />
                 <Route path="/pricing" element={<SupportPage />} />
                 <Route path="*" element={<NotFound />} />
