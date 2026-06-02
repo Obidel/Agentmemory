@@ -60,7 +60,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   // ─── Build a one-shot server bound to this user's JWT ──────────────
   const embedder = createHuggingFaceEmbedder(process.env.HUGGINGFACE_API_KEY);
-  const backend = new SupabaseBackend(supabaseUrl, supabaseAnonKey, jwt, embedder);
+  const maxEmbeddingPerHour = Number.parseInt(process.env.RATE_LIMIT_PER_HOUR ?? '100', 10);
+  const backend = new SupabaseBackend(supabaseUrl, supabaseAnonKey, jwt, embedder, {
+    maxEmbeddingPerHour: Number.isFinite(maxEmbeddingPerHour) && maxEmbeddingPerHour > 0 ? maxEmbeddingPerHour : 0,
+  });
   const server = createServer(backend);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless mode

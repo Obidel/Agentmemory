@@ -41,13 +41,50 @@ export class SupabaseBackend implements MemoryBackend {
   private readonly sb: SupabaseClient;
   private activeProject: string | null = null;
   private embedder: Embedder | null = null;
+  private readonly maxPerHour: number;
 
-  constructor(supabaseUrl: string, supabaseAnonKey: string, jwt: string, embedder: Embedder | null = null) {
+  constructor(supabaseUrl: string, supabaseAnonKey: string, jwt: string, embedder: Embedder | null = null, opts: { maxEmbeddingPerHour?: number } = {}) {
     this.sb = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: `Bearer ${jwt}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
     this.embedder = embedder;
+    this.maxPerHour = opts.maxEmbeddingPerHour ?? 0;
+  }
+
+  private async checkQuota(cost: number): Promise<void> {
+    if (this.maxPerHour <= 0) return;
+    const user = (await this.sb.auth.getUser()).data.user;
+    if (!user) throw new Error('Not authenticated');
+    const { data, error } = await this.sb.rpc('consume_rate_limit', {
+      p_user_id: user.id,
+      p_cost: cost,
+      p_max: this.maxPerHour,
+    });
+    if (error) {
+      // Fail open if the rate-limit table is missing (user didn't run schema.sql
+      // section yet). Log and continue so the rest of the search still works.
+      if (/relation .* does not exist|function .* does not exist/i.test(error.message)) {
+        console.warn('[supabase] rate-limit RPC missing, allowing embed:', error.message);
+        return;
+      }
+      throw error;
+    }
+    type Row = { allowed: boolean; used: number; reset_at: string };
+    const row = (data as Row[] | null)?.[0];
+    if (row && row.allowed === false) {
+      throw new Error(
+        `Embedding rate limit reached: ${this.maxPerHour} calls/hour. ` +
+        `Resets at ${row.reset_at}. Run backfill_embeddings later or upgrade your plan.`
+      );
+    }
+  }
+
+  private async safeEmbed(texts: string[]): Promise<number[][] | null> {
+    if (!this.embedder || texts.length === 0) return null;
+    const cost = Math.max(1, Math.ceil(texts.length / 32));
+    await this.checkQuota(cost);
+    return this.embedder.embed(texts);
   }
 
   private async ensureProject(name: string): Promise<string> {
@@ -86,10 +123,12 @@ export class SupabaseBackend implements MemoryBackend {
     let embedding: number[] | null = null;
     if (this.embedder) {
       try {
-        const [vec] = await this.embedder.embed([memoryToText({ content: input.content, category: input.category, tags, project_name: projectName })]);
-        embedding = vec ?? null;
+        const vecs = await this.safeEmbed([memoryToText({ content: input.content, category: input.category, tags, project_name: projectName })]);
+        embedding = vecs?.[0] ?? null;
       } catch (e) {
-        console.warn('[supabase] embedder failed, storing without embedding:', (e as Error).message);
+        const msg = (e as Error).message;
+        if (msg.includes('rate limit')) throw e;
+        console.warn('[supabase] embedder failed, storing without embedding:', msg);
       }
     }
     const row: Record<string, unknown> = {
@@ -143,7 +182,8 @@ export class SupabaseBackend implements MemoryBackend {
     const vectorRanks = new Map<string, number>();
     if (this.embedder) {
       try {
-        const [qVec] = await this.embedder.embed([query]);
+        const vecs = await this.safeEmbed([query]);
+        const qVec = vecs?.[0];
         if (qVec) {
           const { data: vecRows, error: vecErr } = await this.sb.rpc('semantic_search_memories', {
             p_query_embedding: this.toPgVector(qVec),
@@ -155,7 +195,9 @@ export class SupabaseBackend implements MemoryBackend {
           ((vecRows ?? []) as Array<{ id: string }>).forEach((r, i) => vectorRanks.set(r.id, i + 1));
         }
       } catch (e) {
-        console.warn('[supabase] embedder failed, skipping vector source:', (e as Error).message);
+        const msg = (e as Error).message;
+        if (msg.includes('rate limit')) throw e;
+        console.warn('[supabase] embedder failed, skipping vector source:', msg);
       }
     }
 
@@ -311,6 +353,79 @@ export class SupabaseBackend implements MemoryBackend {
     const projects = await this.listProjects();
     const active = await this.getActiveProject();
     return JSON.stringify({ projects, active }, null, 2);
+  }
+
+  /**
+   * Backfill embeddings for memories that have none. Uses the same
+   * rate-limited HF embedder as the rest of the backend. Returns counts
+   * so the caller (MCP tool) can decide whether to invoke again.
+   *
+   * Designed to be called repeatedly until remaining = 0:
+   *   backfill_embeddings({ limit: 64 })
+   *   backfill_embeddings({ limit: 64 })
+   *   ...
+   */
+  async backfillEmbeddings(input: { limit?: number }): Promise<{ scanned: number; embedded: number; failed: number; remaining: number; rateLimited: boolean; resetAt: string | null }> {
+    const limit = Math.min(input.limit ?? 64, 256);
+    if (!this.embedder) {
+      return { scanned: 0, embedded: 0, failed: 0, remaining: -1, rateLimited: false, resetAt: null };
+    }
+
+    const { data: rows, error: fetchErr } = await this.sb
+      .from('memories')
+      .select('id, content, category, tags, project_name')
+      .is('embedding', null)
+      .order('created_at', { ascending: true })
+      .limit(limit);
+    if (fetchErr) throw fetchErr;
+    const list = (rows ?? []) as Array<Pick<MemoryRow, 'id' | 'content' | 'category' | 'tags' | 'project_name'>>;
+    if (list.length === 0) {
+      return { scanned: 0, embedded: 0, failed: 0, remaining: 0, rateLimited: false, resetAt: null };
+    }
+
+    let embedded = 0;
+    let failed = 0;
+    let rateLimited = false;
+    let resetAt: string | null = null;
+
+    // Process in batches of 32 (HF max). safeEmbed handles the quota check
+    // and the HF call; on rate limit we stop early and report the reset.
+    for (let i = 0; i < list.length; i += 32) {
+      const batch = list.slice(i, i + 32);
+      const texts = batch.map(m => memoryToText(m));
+      let vecs: number[][] | null = null;
+      try {
+        vecs = await this.safeEmbed(texts);
+      } catch (e) {
+        const msg = (e as Error).message;
+        if (msg.includes('rate limit')) {
+          rateLimited = true;
+          const m = msg.match(/Resets at (.*?)\./);
+          resetAt = m?.[1] ?? null;
+          break;
+        }
+        throw e;
+      }
+      if (!vecs) break;
+      for (let j = 0; j < batch.length; j++) {
+        const vec = vecs[j];
+        if (!vec || vec.length !== 384) { failed++; continue; }
+        const { error: upErr } = await this.sb
+          .from('memories')
+          .update({ embedding: this.toPgVector(vec) })
+          .eq('id', batch[j].id);
+        if (upErr) { failed++; continue; }
+        embedded++;
+      }
+    }
+
+    const user = (await this.sb.auth.getUser()).data.user;
+    let remaining = -1;
+    if (user) {
+      const { data: cnt } = await this.sb.rpc('count_memories_without_embedding', { p_user_id: user.id });
+      remaining = (cnt as number | null) ?? 0;
+    }
+    return { scanned: list.length, embedded, failed, remaining, rateLimited, resetAt };
   }
 
   private rowToMemory = (r: MemoryRow): Memory => ({

@@ -55,7 +55,7 @@ Configures in `claude_desktop_config.json` (the script runs `mcp/index.ts` via `
 }
 ```
 
-8 tools: `add_memory`, `search_memories`, `list_memories`, `find_similar`, `delete_memory`, `list_projects`, `switch_project`, `get_project_context`, `import_jsonl`. 3 resources: `agentmemory://rules`, `agentmemory://graph`, `agentmemory://projects`. 100% free, no license keys.
+9 tools: `add_memory`, `search_memories`, `list_memories`, `find_similar`, `delete_memory`, `list_projects`, `switch_project`, `get_project_context`, `import_jsonl`, `backfill_embeddings`. 3 resources: `agentmemory://rules`, `agentmemory://graph`, `agentmemory://projects`. 100% free, no license keys.
 
 ## Features
 
@@ -89,6 +89,18 @@ Top results from each source are joined with `RRF(d) = Σᵢ wᵢ / (k + rankᵢ
 **Enabling semantic search on the cloud MCP** — sign up at [huggingface.co](https://huggingface.co) (free), grab a read-token at <https://huggingface.co/settings/tokens>, and set `HUGGINGFACE_API_KEY` on Vercel. The serverless handler in `api/mcp.ts` instantiates `createHuggingFaceEmbedder(token)` and injects it into the `SupabaseBackend`. On `add_memory` the content is embedded and stored as `vector(384)`; on `search_memories` the query is embedded and the `semantic_search_memories` RPC does cosine search via the HNSW index.
 
 Without the key, the server still works — it just skips the vector source and the RRF becomes 2-way (BM25 + graph).
+
+**Backfilling old memories** — after enabling the embedder, existing rows have `embedding = NULL`. Run the `backfill_embeddings` MCP tool repeatedly until `remaining = 0`:
+
+```
+backfill_embeddings({ limit: 64 })
+backfill_embeddings({ limit: 64 })
+…
+```
+
+Each call costs ⌈N/32⌉ embedding API calls and respects the per-user rate limit. The 60s serverless timeout fits ~3 HF batches = ~96 memories per invocation.
+
+**Rate limiting** — the Supabase schema adds an `api_rate_limits` table and a `consume_rate_limit(p_user_id, p_cost, p_max)` RPC. Every embedding call (search query, memory insert, backfill batch) atomically consumes `ceil(texts/32)` units from a sliding 1-hour window. Default cap is `RATE_LIMIT_PER_HOUR=100`, which leaves plenty of headroom in HF's 30k/month free tier for ~30 active users. Set the env to `0` to disable. If you hit the limit, the MCP call returns `isError: true` with the exact reset timestamp.
 
 ### JSONL import from Claude Code sessions
 
@@ -138,6 +150,8 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=eyJhbGc...
 # Optional: enables pgvector semantic search via HuggingFace Inference API (free tier)
 HUGGINGFACE_API_KEY=hf_xxxxxxxxxxxxxxxxxxxxxxxx
+# Optional: per-user embedding rate limit (default 100/hr, protects HF free tier)
+RATE_LIMIT_PER_HOUR=100
 # Service role key NOT used — RLS scopes everything to auth.uid()
 ```
 

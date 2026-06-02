@@ -54,6 +54,19 @@ export interface MemoryBackend {
   getGraphJson(): Promise<string>;
   getProjectsJson(): Promise<string>;
 
+  /**
+   * Optional: generate embeddings for memories that have none. Returns null
+   * on backends without an embedder (e.g. local-only mode).
+   */
+  backfillEmbeddings?(input: { limit?: number }): Promise<{
+    scanned: number;
+    embedded: number;
+    failed: number;
+    remaining: number;
+    rateLimited: boolean;
+    resetAt: string | null;
+  } | null>;
+
   /** Absolute path of the working directory (used for relative path resolution). */
   cwd?(): string;
 }
@@ -94,6 +107,11 @@ const ProjectInput = z.object({ name: z.string().min(1) });
 const ImportJsonlInput = z.object({
   path: z.string().describe('Absolute or MCP-cwd-relative path to a .jsonl file'),
   project: z.string().optional().describe('Override project name (defaults to filename)'),
+});
+
+const BackfillEmbeddingsInput = z.object({
+  limit: z.number().int().min(1).max(256).default(64)
+    .describe('Max memories to embed in this call. Serverless runs have a 60s budget; default 64 ≈ 2 HF batches.'),
 });
 
 function textResult(text: string): CallToolResult {
@@ -201,6 +219,16 @@ export function createServer(backend: MemoryBackend): Server {
           required: ['path'],
         },
       },
+      {
+        name: 'backfill_embeddings',
+        description: 'Generate pgvector embeddings for memories that have none. Only useful on the Supabase backend with HUGGINGFACE_API_KEY set. Idempotent and rate-limited: call repeatedly until remaining=0. Each call costs ceil(N/32) embedding API requests.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            limit: { type: 'number', minimum: 1, maximum: 256, default: 64, description: 'Max memories to embed per call' },
+          },
+        },
+      },
     ],
   }));
 
@@ -284,6 +312,29 @@ export function createServer(backend: MemoryBackend): Server {
             `Imported ${imported} memories from ${fullPath}\n` +
             `Total turns: ${stats.totalTurns}, user messages: ${stats.userTurns}, accepted: ${stats.accepted}`
           );
+        }
+        case 'backfill_embeddings': {
+          if (!backend.backfillEmbeddings) {
+            return errResult('This backend has no embedder (local-only mode). Run the Supabase backend with HUGGINGFACE_API_KEY set.');
+          }
+          const a = BackfillEmbeddingsInput.parse(args);
+          const result = await backend.backfillEmbeddings({ limit: a.limit });
+          if (!result) {
+            return errResult('Embedder not configured on this backend.');
+          }
+          if (result.scanned === 0) {
+            return textResult('No memories without embeddings. Nothing to do.');
+          }
+          const lines = [
+            `Scanned:   ${result.scanned} memories without embedding`,
+            `Embedded:  ${result.embedded}`,
+            `Failed:    ${result.failed}`,
+            `Remaining: ${result.remaining} (call again to continue)`,
+          ];
+          if (result.rateLimited) {
+            lines.push(`⚠️  Rate limit reached. Resets at ${result.resetAt}. Run this tool again after the reset.`);
+          }
+          return textResult(lines.join('\n'));
         }
         default:
           return errResult(`Unknown tool: ${name}`);

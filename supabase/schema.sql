@@ -259,3 +259,77 @@ as $$
   order by m.content <-> p_query
   limit p_limit;
 $$;
+
+-- ─── Rate limit for embedding API (protects HF free tier) ────────────
+-- One row per user. Resets every hour. The consume_rate_limit RPC is
+-- atomic (FOR UPDATE) so concurrent MCP calls can't both succeed past
+-- the cap. Used by SupabaseBackend before every embed() call.
+create table if not exists public.api_rate_limits (
+  user_id          uuid primary key references auth.users(id) on delete cascade,
+  hourly_count     int     not null default 0,
+  hourly_reset_at  timestamptz not null default (now() + interval '1 hour')
+);
+
+alter table public.api_rate_limits enable row level security;
+
+-- Users can read their own row (to show "X/100 used" in UI later) but
+-- can never write directly. Only the consume_rate_limit RPC mutates it.
+create policy "read own rate limit"
+  on public.api_rate_limits for select
+  using (auth.uid() = user_id);
+
+create or replace function public.consume_rate_limit(
+  p_user_id uuid,
+  p_cost    int,
+  p_max     int
+)
+returns table (allowed boolean, used int, reset_at timestamptz)
+language plpgsql
+as $$
+declare
+  v_count  int;
+  v_reset  timestamptz;
+  v_now    timestamptz := now();
+begin
+  insert into public.api_rate_limits (user_id, hourly_count, hourly_reset_at)
+    values (p_user_id, 0, v_now + interval '1 hour')
+    on conflict (user_id) do nothing;
+
+  select hourly_count, hourly_reset_at
+    into v_count, v_reset
+    from public.api_rate_limits
+    where user_id = p_user_id
+    for update;
+
+  if v_reset <= v_now then
+    v_count  := 0;
+    v_reset  := v_now + interval '1 hour';
+  end if;
+
+  if v_count + p_cost > p_max then
+    return query select false, v_count, v_reset;
+    return;
+  end if;
+
+  v_count := v_count + p_cost;
+  update public.api_rate_limits
+    set hourly_count    = v_count,
+        hourly_reset_at = v_reset
+    where user_id = p_user_id;
+
+  return query select true, v_count, v_reset;
+end;
+$$;
+
+create or replace function public.count_memories_without_embedding(
+  p_user_id uuid
+)
+returns int
+language sql
+stable
+as $$
+  select count(*)::int
+  from public.memories
+  where user_id = p_user_id
+    and embedding is null;
+$$;
