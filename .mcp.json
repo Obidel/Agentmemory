@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "npx",
+      "args": ["-y", "agentmemory"],
+      "env": {
+        "HUGGINGFACE_API_KEY": "${env:HUGGINGFACE_API_KEY}",
+        "VITE_SUPABASE_URL": "${env:VITE_SUPABASE_URL}",
+        "VITE_SUPABASE_ANON_KEY": "${env:VITE_SUPABASE_ANON_KEY}"
+      }
+    },
+    "agentmemory-cloud": {
+      "url": "https://agentmemory-dusky.vercel.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:SUPABASE_ACCESS_TOKEN}"
+      }
+    }
+  }
+}

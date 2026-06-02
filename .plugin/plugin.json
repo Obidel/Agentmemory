@@ -1,0 +1,35 @@
+{
+  "name": "agentmemory",
+  "displayName": "AgentMemory",
+  "version": "0.1.0",
+  "description": "Persistent memory for AI agents via MCP. Hybrid BM25 + vector + graph search, self-host in 5 min, MIT-licensed.",
+  "author": {
+    "name": "AgentMemory Contributors",
+    "url": "https://github.com/Obidel/Agentmemory"
+  },
+  "license": "MIT",
+  "homepage": "https://agentmemory-dusky.vercel.app",
+  "repository": "https://github.com/Obidel/Agentmemory",
+  "keywords": [
+    "mcp",
+    "memory",
+    "ai-agents",
+    "claude",
+    "cursor",
+    "cline",
+    "pgvector",
+    "self-hosted"
+  ],
+  "components": {
+    "mcpServers": [".mcp.json"],
+    "skills": ["skills/agentmemory/SKILL.md"],
+    "agents": ["agents/memory-curator.md"],
+    "commands": [
+      "commands/add-memory.md",
+      "commands/search-memories.md",
+      "commands/remember-this.md"
+    ],
+    "rules": ["rules/agentmemory.mdc"],
+    "hooks": ["hooks/hooks.json"]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Tip: project-specific conventions should be stored as memories via AgentMemory MCP add_memory. Future sessions will pick them up automatically.'"
+          }
+        ]
+      }
+    ]
+  }
+}

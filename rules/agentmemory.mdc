@@ -1,0 +1,43 @@
+---
+description: AgentMemory MCP server rules — use add_memory before answering any question that introduces a project-specific convention, dependency, or constraint.
+globs:
+  - "**/*"
+alwaysApply: false
+---
+
+# AgentMemory MCP
+
+Persistent memory for AI agents. Before answering any question that touches project-specific conventions, dependencies, or constraints, call `mcp__agentmemory__search_memories` first with a relevant query.
+
+## When to add a memory
+
+- A non-obvious convention was just learned (e.g. "this project uses forwardRef, not useRef")
+- A dependency choice was made (e.g. "pinned to React 18 because of X")
+- A constraint was discovered (e.g. "PostgreSQL 15 with RLS, never bypass in app code")
+- A decision was made with non-trivial tradeoffs (call `mcp__agentmemory__add_memory` with `importance: 4-5`)
+
+## Format
+
+```
+add_memory({
+  content: "Prefer functional components with hooks over class components. Use forwardRef for components that need ref access.",
+  category: "preference",
+  source: "claude",
+  importance: 3,
+  tags: ["react", "hooks"]
+})
+```
+
+## Categories
+
+- `constraint` — hard rules, never violate
+- `preference` — strong defaults, deviate only with reason
+- `architecture` — structural decisions
+- `context` — background info (project purpose, stack)
+- `decision` — choices with tradeoffs
+
+## Don't
+
+- Don't add memories that are already obvious from the code
+- Don't add memories that change every session (e.g. "I'm debugging X right now")
+- Don't duplicate — search first, only add if not found
