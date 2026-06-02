@@ -2,6 +2,14 @@
 
 > Visual memory manager for AI agents. One source of truth for Claude Code, Cursor, Cline, Continue.
 
+<p align="center">
+  <a href="https://agentmemory-dusky.vercel.app/"><img src="https://img.shields.io/badge/Try%20it%20now%20%E2%9D%92-Open%20demo-7c3aed?style=for-the-badge&logo=vercel&logoColor=white" alt="Try it now" /></a>
+  <a href="https://github.com/Obidel/Agentmemory/stargazers"><img src="https://img.shields.io/github/stars/Obidel/Agentmemory?style=for-the-badge&logo=github&color=0a0a1a" alt="Stars" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-22d3ee?style=for-the-badge" alt="MIT" /></a>
+</p>
+
+<sub align="center">* <b>Hosted preview</b> on Vercel — sign in with email or GitHub to try. Your data stays private to your account via <a href="https://supabase.com/docs/guides/auth/row-level-security">Supabase RLS</a>. For self-hosting or local-only mode, see <a href="#quick-start">Quick start</a> below.</sub>
+
 ## 100% free, forever
 
 AgentMemory is open source under MIT. No paywalls, no premium tiers, no limits.
