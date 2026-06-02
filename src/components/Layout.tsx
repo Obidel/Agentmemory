@@ -49,7 +49,14 @@ export default function Layout({ children }: LayoutProps) {
     : { label: 'MIT',   gradient: 'from-slate-500/20 to-slate-600/20 text-slate-300 border-slate-500/30' };
 
   const handleSignOut = async () => {
-    if (supabase) await supabase.auth.signOut();
+    if (!supabase) return;
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Sign out failed:', err);
+    }
+    // Always clear local state, even if the network call failed —
+    // the user clicked sign out, so we shouldn't leak cloud data.
     setCloudUser(null);
   };
 

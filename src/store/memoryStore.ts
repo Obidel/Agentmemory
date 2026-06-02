@@ -555,7 +555,18 @@ export const useMemoryStore = create<MemoryStore>()(
         if (user) {
           set({ currentUser: user, isCloud: true });
         } else {
-          set({ currentUser: DEMO_USER, isCloud: false });
+          // Sign out: reset to local-only DEMO_USER and clear all cloud data
+          // so the next signed-in user on this machine doesn't see leftovers.
+          set({
+            currentUser: DEMO_USER,
+            isCloud: false,
+            memories: seedMemoriesWithEmbeddings,
+            relations: SEED_RELATIONS,
+            projects: ['My React App', 'API Service'],
+            activeProject: 'My React App',
+            syncing: false,
+            lastSyncedAt: null,
+          });
         }
       },
 

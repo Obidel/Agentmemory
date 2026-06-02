@@ -625,9 +625,40 @@ Run your own private sync backend in ~5 minutes.
 1. Go to [supabase.com](https://supabase.com) → **New project**
 2. Once provisioned, open **SQL Editor** → paste the contents of [`supabase/schema.sql`](./supabase/schema.sql) → **Run**
    - The schema enables the **pgvector** extension and creates the `embedding vector(384)` column + HNSW index on the first run
-3. In **Authentication → Providers**, enable **Email** (magic link) and **GitHub** (optional)
+3. In **Authentication → Providers**, enable **Email** (magic link) and **GitHub** (optional — see [§1a below](#1a-enable-github-login-optional) for step-by-step)
 4. In **Settings → API**, copy your `Project URL` and `anon` key
 5. (Optional, for semantic search) Sign up at [huggingface.co](https://huggingface.co) and create a read-token at <https://huggingface.co/settings/tokens>
+
+### 1a. Enable GitHub login (optional)
+
+GitHub login is one click in the auth page and lets you skip the email magic-link round trip. Setup takes ~5 minutes.
+
+**Step 1 — Create a GitHub OAuth App**
+
+1. Go to <https://github.com/settings/developers> → **New OAuth App**
+2. Fill in:
+   - **Application name**: `AgentMemory` (or anything you like)
+   - **Homepage URL**: your deployed URL (e.g. `https://agentmemory-dusky.vercel.app`) or `http://localhost:5173` for local dev
+   - **Authorization callback URL**: copy this from Supabase in the next step — you'll come back to edit it
+3. Click **Register application**
+4. On the next page, click **Generate a new client secret**. Copy the **Client ID** and the **Client secret** (you won't see the secret again)
+
+**Step 2 — Wire it into Supabase**
+
+1. Back in Supabase Dashboard → **Authentication → Providers → GitHub**
+2. Toggle **Enable Sign in with GitHub** on
+3. Paste the **Client ID** and **Client Secret** from step 1
+4. Click **Save**
+5. In **Authentication → URL Configuration**, add your site URLs to **Site URL** and **Additional Redirect URLs**:
+   - `http://localhost:5173` (dev)
+   - `https://your-app.vercel.app` (production)
+6. Supabase now shows the canonical **Callback URL** for your project — it looks like `https://<project-ref>.supabase.co/auth/v1/callback`. Go back to the GitHub OAuth App and paste that into **Authorization callback URL**
+
+**Step 3 — Test it**
+
+Open `/auth` in your app → click **Continue with GitHub** → you should bounce to GitHub, approve, and land back signed in. The avatar in the sidebar switches to your GitHub profile picture and a **Sign out** button appears in the bottom-left.
+
+> **Self-hosting gotcha**: every custom domain you serve from needs to be added to Supabase's **Additional Redirect URLs**, otherwise OAuth will reject the `redirectTo` parameter. Supabase returns a `redirect_uri not in allowlist` error if you skip this.
 
 ### 2. Configure environment
 
