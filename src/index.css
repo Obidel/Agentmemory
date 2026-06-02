@@ -2,10 +2,12 @@
 
 /* ==========================================================================
    AgentMemory.fyi — Neural Glassmorphism Design System
+   Theme tokens are CSS variables so we can swap the entire palette between
+   dark and light by changing one attribute on <html>.
    ========================================================================== */
 
 @theme {
-  /* Brand colors */
+  /* Brand colors (theme-agnostic) */
   --color-neural-50:  #f5f3ff;
   --color-neural-100: #ede9fe;
   --color-neural-200: #ddd6fe;
@@ -26,12 +28,74 @@
   --color-cyber-500: #06b6d4;
   --color-cyber-600: #0891b2;
 
-  --color-ink-950: #050511;
-  --color-ink-900: #0a0a1a;
-  --color-ink-800: #0f0f24;
+  /* Surfaces (theme-aware) */
+  --color-ink-950: var(--surface-base);
+  --color-ink-900: var(--surface-card);
+  --color-ink-800: var(--surface-elevated);
 
   --font-display: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Geist Mono", ui-monospace, monospace;
+}
+
+/* ==========================================================================
+   Theme palette tokens
+   ========================================================================== */
+
+:root,
+html[data-theme="dark"] {
+  --surface-base:       #050511;
+  --surface-card:       #0a0a1a;
+  --surface-elevated:   #0f0f24;
+  --text-primary:       #f8fafc;
+  --text-secondary:     #d1d5db;
+  --text-muted:         #9ca3af;
+  --text-subtle:        #6b7280;
+  --text-on-accent:     #ffffff;
+  --border-subtle:      rgba(255, 255, 255, 0.05);
+  --border-default:     rgba(255, 255, 255, 0.10);
+  --border-strong:      rgba(255, 255, 255, 0.15);
+  --hover-overlay:      rgba(255, 255, 255, 0.05);
+  --hover-overlay-2:    rgba(255, 255, 255, 0.10);
+  --input-bg:           rgba(0, 0, 0, 0.40);
+  --input-border:       rgba(255, 255, 255, 0.10);
+  --glass-bg:           linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  --glass-bg-strong:    linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --glass-shadow:       0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --glass-shadow-strong: 0 8px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --mesh-blob-opacity:  0.55;
+  --mesh-blob-3-opacity: 0.35;
+  --grid-line-color:    rgba(139, 92, 246, 0.04);
+  --noise-opacity:      0.03;
+  --scrollbar-thumb:    rgba(139, 92, 246, 0.3);
+  --scrollbar-thumb-hover: rgba(139, 92, 246, 0.5);
+}
+
+html[data-theme="light"] {
+  --surface-base:       #f7f7fb;
+  --surface-card:       #ffffff;
+  --surface-elevated:   #ffffff;
+  --text-primary:       #0f172a;
+  --text-secondary:     #334155;
+  --text-muted:         #64748b;
+  --text-subtle:        #94a3b8;
+  --text-on-accent:     #ffffff;
+  --border-subtle:      rgba(15, 23, 42, 0.06);
+  --border-default:     rgba(15, 23, 42, 0.10);
+  --border-strong:      rgba(15, 23, 42, 0.18);
+  --hover-overlay:      rgba(15, 23, 42, 0.04);
+  --hover-overlay-2:    rgba(15, 23, 42, 0.08);
+  --input-bg:           #ffffff;
+  --input-border:       rgba(15, 23, 42, 0.12);
+  --glass-bg:           linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.65) 100%);
+  --glass-bg-strong:    linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.80) 100%);
+  --glass-shadow:       0 4px 24px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --glass-shadow-strong: 0 8px 40px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --mesh-blob-opacity:  0.25;
+  --mesh-blob-3-opacity: 0.15;
+  --grid-line-color:    rgba(139, 92, 246, 0.06);
+  --noise-opacity:      0.015;
+  --scrollbar-thumb:    rgba(139, 92, 246, 0.4);
+  --scrollbar-thumb-hover: rgba(139, 92, 246, 0.6);
 }
 
 /* ==========================================================================
@@ -43,18 +107,85 @@
 }
 
 html, body {
-  background-color: var(--color-ink-950);
-  color: #e5e7eb;
+  background-color: var(--surface-base);
+  color: var(--text-secondary);
   font-family: var(--font-display);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 ::selection {
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(236, 72, 153, 0.4));
   color: white;
 }
+
+/* ==========================================================================
+   Scoped overrides for Tailwind utility classes (theme-aware)
+   We don't refactor 200+ call-sites; instead we re-color the white / gray /
+   black utility classes in light mode with the same selector specificity as
+   Tailwind (no !important, but they win by source-order in index.css).
+   ========================================================================== */
+
+html[data-theme="light"] {
+  /* Text */
+  .text-white { color: var(--text-primary); }
+  .text-gray-100 { color: var(--text-primary); }
+  .text-gray-200 { color: #1e293b; }
+  .text-gray-300 { color: var(--text-secondary); }
+  .text-gray-400 { color: var(--text-muted); }
+  .text-gray-500 { color: var(--text-subtle); }
+  .text-gray-600 { color: var(--text-subtle); }
+  .placeholder\:text-gray-500::placeholder { color: var(--text-subtle); }
+  .placeholder\:text-gray-600::placeholder { color: var(--text-subtle); }
+
+  /* Surfaces */
+  .bg-white\/5 { background-color: var(--hover-overlay); }
+  .bg-white\/10 { background-color: var(--hover-overlay-2); }
+  .bg-white\/\[0\.02\] { background-color: rgba(15, 23, 42, 0.02); }
+  .bg-white\/\[0\.04\] { background-color: rgba(15, 23, 42, 0.04); }
+  .bg-black\/20 { background-color: rgba(15, 23, 42, 0.04); }
+  .bg-black\/30 { background-color: var(--input-bg); }
+  .bg-black\/40 { background-color: var(--input-bg); }
+  .bg-gray-800 { background-color: #f1f5f9; }
+
+  /* Borders */
+  .border-white\/5 { border-color: var(--border-subtle); }
+  .border-white\/10 { border-color: var(--border-default); }
+  .border-white\/30 { border-color: var(--border-strong); }
+  .border-white\/50 { border-color: var(--border-strong); }
+  .divide-white\/5 > * + * { border-color: var(--border-subtle); }
+
+  /* Hover surfaces */
+  .hover\:bg-white\/5:hover { background-color: var(--hover-overlay); }
+  .hover\:bg-white\/10:hover { background-color: var(--hover-overlay-2); }
+  .hover\:bg-white\/\[0\.04\]:hover { background-color: rgba(15, 23, 42, 0.04); }
+  .hover\:border-white\/10:hover { border-color: var(--border-default); }
+  .hover\:border-white\/30:hover { border-color: var(--border-strong); }
+  .hover\:text-white:hover { color: var(--text-primary); }
+
+  /* Focus */
+  .focus\:border-violet-500\/50:focus { border-color: rgba(139, 92, 246, 0.6); }
+
+  /* Group hover (text inside card on hover) */
+  .group:hover .group-hover\:text-white { color: var(--text-primary); }
+}
+
+/* ==========================================================================
+   Themed helper classes (use these for NEW code)
+   ========================================================================== */
+
+.text-themed-primary   { color: var(--text-primary); }
+.text-themed-secondary { color: var(--text-secondary); }
+.text-themed-muted     { color: var(--text-muted); }
+.text-themed-subtle    { color: var(--text-subtle); }
+.bg-themed-base        { background-color: var(--surface-base); }
+.bg-themed-card        { background-color: var(--surface-card); }
+.bg-themed-elevated    { background-color: var(--surface-elevated); }
+.bg-themed-input       { background-color: var(--input-bg); }
+.border-themed-subtle  { border-color: var(--border-subtle); }
+.border-themed-default { border-color: var(--border-default); }
 
 /* ==========================================================================
    Neural mesh-gradient background (signature element)
@@ -64,8 +195,9 @@ html, body {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background-color: var(--color-ink-950);
+  background-color: var(--surface-base);
   overflow: hidden;
+  transition: background-color 0.3s ease;
 }
 
 .mesh-bg::before,
@@ -74,7 +206,7 @@ html, body {
   position: absolute;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.55;
+  opacity: var(--mesh-blob-opacity);
   animation: float 20s ease-in-out infinite;
   will-change: transform;
 }
@@ -104,7 +236,7 @@ html, body {
   border-radius: 50%;
   background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
   filter: blur(120px);
-  opacity: 0.35;
+  opacity: var(--mesh-blob-3-opacity);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -124,8 +256,8 @@ html, body {
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.04) 1px, transparent 1px);
+    linear-gradient(var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line-color) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
   pointer-events: none;
@@ -136,7 +268,7 @@ html, body {
   position: fixed;
   inset: 0;
   z-index: -1;
-  opacity: 0.03;
+  opacity: var(--noise-opacity);
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -146,31 +278,19 @@ html, body {
    ========================================================================== */
 
 .glass {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.01) 100%
-  );
+  background: var(--glass-bg);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--glass-shadow);
 }
 
 .glass-strong {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.02) 100%
-  );
+  background: var(--glass-bg-strong);
   backdrop-filter: blur(32px) saturate(200%);
   -webkit-backdrop-filter: blur(32px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 8px 40px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--glass-shadow-strong);
 }
 
 .glass-hover {
@@ -239,9 +359,9 @@ html, body {
 }
 
 .btn-ghost {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #d1d5db;
+  background: var(--hover-overlay);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
   border-radius: 12px;
   padding: 0.5rem 1rem;
   transition: all 0.2s ease;
@@ -249,9 +369,9 @@ html, body {
 }
 
 .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: white;
+  background: var(--hover-overlay-2);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 /* ==========================================================================
@@ -304,13 +424,13 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
   transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* ==========================================================================

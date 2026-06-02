@@ -3,9 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Brain, Search, Network, Upload, Download, BookTemplate,
   ChevronDown, Plus, Settings, Menu, X, LogIn, LogOut,
-  RefreshCw, Folder, Sparkles
+  RefreshCw, Folder, Sparkles, Sun, Moon
 } from 'lucide-react';
 import { useMemoryStore } from '../store/memoryStore';
+import { useTheme } from '../hooks/useTheme';
 import { supabase, supabaseEnabled } from '../lib/supabase';
 import { cn } from '../utils/cn';
 
@@ -26,6 +27,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { currentUser, projects, activeProject, setActiveProject, addProject, memories, isCloud, syncing, lastSyncedAt, pullFromCloud, setCloudUser } = useMemoryStore();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -241,7 +243,7 @@ export default function Layout({ children }: LayoutProps) {
               <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 via-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold text-white">
                 {currentUser.name.charAt(0)}
                 <div className={cn(
-                  'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0a1a]',
+                  'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-themed-default',
                   syncing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
                 )} />
               </div>
@@ -257,24 +259,31 @@ export default function Layout({ children }: LayoutProps) {
                 <>
                   <button
                     onClick={() => void pullFromCloud()}
-                    className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5"
+                    className="text-gray-400 hover:text-themed-primary p-1.5 rounded-lg hover:bg-themed-elevated"
                     title="Sync now"
                   >
                     <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
                   </button>
                   <button
                     onClick={handleSignOut}
-                    className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5"
+                    className="text-gray-400 hover:text-themed-primary p-1.5 rounded-lg hover:bg-themed-elevated"
                     title="Sign out"
                   >
                     <LogOut size={14} />
                   </button>
                 </>
               ) : (
-                <button className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5">
+                <button className="text-gray-400 hover:text-themed-primary p-1.5 rounded-lg hover:bg-themed-elevated">
                   <Settings size={14} />
                 </button>
               )}
+              <button
+                onClick={toggleTheme}
+                className="text-gray-400 hover:text-themed-primary p-1.5 rounded-lg hover:bg-themed-elevated"
+                title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+              >
+                {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+              </button>
             </div>
           )}
         </div>

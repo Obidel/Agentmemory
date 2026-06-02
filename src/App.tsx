@@ -12,6 +12,7 @@ import BackfillPage from './pages/BackfillPage';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import { useAuth } from './hooks/useAuth';
+import { useTheme } from './hooks/useTheme';
 import { useMemoryStore } from './store/memoryStore';
 
 function NotFound() {
@@ -29,6 +30,7 @@ function NotFound() {
 
 export default function App() {
   useAuth();
+  useTheme();
   // Run auto-forget once on app boot to prune decayed memories.
   useEffect(() => {
     const removed = useMemoryStore.getState().runAutoForget();
