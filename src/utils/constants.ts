@@ -153,15 +153,3 @@ export const TEMPLATES: Template[] = [
     ],
   },
 ];
-
-export const PLAN_LIMITS = {
-  free: { memories: 50, projects: 1 },
-  solo: { memories: Infinity, projects: 5 },
-  team: { memories: Infinity, projects: Infinity },
-};
-
-export const PLAN_PRICES = {
-  free: 0,
-  solo: 10,
-  team: 25,
-};

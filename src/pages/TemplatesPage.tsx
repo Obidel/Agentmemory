@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Eye, Download, Sparkles, Tag, X } from 'lucide-react';
+import { Check, Eye, Download, Sparkles, Tag, X, Heart } from 'lucide-react';
 import { TEMPLATES, CATEGORY_BG } from '../utils/constants';
 import { Template, MemoryCategory } from '../types';
 import { useMemoryStore } from '../store/memoryStore';
@@ -156,83 +156,22 @@ export default function TemplatesPage() {
         ))}
       </div>
 
-      {/* Pricing Section */}
-      <div className="border-t border-gray-800 pt-10">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">Upgrade Your Memory</h2>
-          <p className="text-gray-400">More memories, more projects, team collaboration</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {[
-            {
-              name: 'Free',
-              price: 0,
-              features: ['50 memories', '1 project', 'All formats export', 'Semantic search', 'D3 graph view'],
-              cta: 'Current Plan',
-              disabled: true,
-              highlight: false,
-            },
-            {
-              name: 'Solo',
-              price: 10,
-              features: ['Unlimited memories', '5 projects', 'GitHub Sync', 'Priority embeddings', 'API access'],
-              cta: 'Get Solo',
-              disabled: false,
-              highlight: true,
-            },
-            {
-              name: 'Team',
-              price: 25,
-              features: ['Everything in Solo', 'Unlimited projects', 'Team sharing', 'Shared memory pools', 'Admin dashboard'],
-              cta: 'Get Team',
-              disabled: false,
-              highlight: false,
-            },
-          ].map(plan => (
-            <div
-              key={plan.name}
-              className={cn(
-                'relative bg-gray-900 border rounded-2xl p-6',
-                plan.highlight
-                  ? 'border-indigo-500/50 shadow-lg shadow-indigo-500/10'
-                  : 'border-gray-800'
-              )}
-            >
-              {plan.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs px-3 py-1 rounded-full font-medium">
-                  Most Popular
-                </div>
-              )}
-              <div className="mb-4">
-                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-3xl font-bold text-white">${plan.price}</span>
-                  {plan.price > 0 && <span className="text-gray-400 text-sm">/month</span>}
-                </div>
-              </div>
-              <ul className="space-y-2 mb-6">
-                {plan.features.map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-gray-300">
-                    <Check size={14} className="text-indigo-400 flex-shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                disabled={plan.disabled}
-                className={cn(
-                  'w-full py-2.5 rounded-xl text-sm font-medium transition-colors',
-                  plan.disabled
-                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                    : plan.highlight
-                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                    : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700'
-                )}
-              >
-                {plan.cta}
-              </button>
-            </div>
-          ))}
+      {/* 100% Free banner */}
+      <div className="border-t border-themed-default pt-10">
+        <div className="max-w-2xl mx-auto text-center px-6 py-8 rounded-2xl glass">
+          <h2 className="text-2xl font-bold text-themed-primary mb-2">100% free, forever</h2>
+          <p className="text-themed-secondary mb-4">
+            Unlimited memories, unlimited projects, MIT-licensed, no paywall. Built in spare time — if it saves you time, consider supporting development.
+          </p>
+          <a
+            href="https://dalink.to/agentmemory"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-white font-medium text-sm transition-all shadow-lg shadow-violet-500/20"
+          >
+            <Heart size={15} />
+            Support on DonationAlerts
+          </a>
         </div>
       </div>
 

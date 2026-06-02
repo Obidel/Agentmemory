@@ -371,13 +371,9 @@ const memoryStorage = createJSONStorage(() =>
 );
 
 // === Plan limits ===
-// AgentMemory is fully free and open source. The plan metadata is kept for
-// analytics and to render sponsor tiers, but no limits are enforced.
-
-export const PLAN_LIMITS = {
-  free: { memories: Infinity, projects: Infinity },
-  sponsor: { memories: Infinity, projects: Infinity },
-};
+// AgentMemory is fully free and open source. The plan metadata lives in
+// utils/planConfig.ts (used for analytics and the sponsor badge). No limits
+// are enforced anywhere — see planConfig.ts for the source of truth.
 
 // === Zustand store ===
 
