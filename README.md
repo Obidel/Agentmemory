@@ -13,7 +13,7 @@
 ## Screenshots
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/dashboard.png" alt="Dashboard" width="900" />
+  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/dashboard.png?v=2" alt="Dashboard" width="900" />
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/graph.png" alt="Memory Graph" width="900" />
+  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/graph.png?v=2" alt="Memory Graph" width="900" />
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/export.png" alt="Export" width="900" />
+  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/export.png?v=2" alt="Export" width="900" />
 </p>
 
 <p align="center">
