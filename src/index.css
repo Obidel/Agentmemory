@@ -140,6 +140,28 @@ html[data-theme="light"] {
   .text-gray-700 { color: var(--text-muted); }
   .text-slate-300 { color: var(--text-secondary); }
   .text-slate-400 { color: var(--text-muted); }
+
+  /* Brand text — light variants (100-300) swap to dark (700-900) in light mode */
+  .text-amber-100 { color: #78350f; }
+  .text-amber-200 { color: #92400e; }
+  .text-amber-300 { color: #b45309; }
+  .text-cyan-200 { color: #155e75; }
+  .text-cyan-300 { color: #0e7490; }
+  .text-emerald-100 { color: #064e3b; }
+  .text-emerald-200 { color: #065f46; }
+  .text-emerald-300 { color: #047857; }
+  .text-fuchsia-200 { color: #86198f; }
+  .text-fuchsia-300 { color: #a21caf; }
+  .text-indigo-300 { color: #4338ca; }
+  .text-orange-300 { color: #c2410c; }
+  .text-pink-200 { color: #9d174d; }
+  .text-pink-300 { color: #be185d; }
+  .text-red-300 { color: #b91c1c; }
+  .text-rose-100 { color: #881337; }
+  .text-rose-200 { color: #9f1239; }
+  .text-rose-300 { color: #be123c; }
+  .text-violet-200 { color: #5b21b6; }
+  .text-violet-300 { color: #6d28d9; }
   .placeholder\:text-gray-500::placeholder { color: var(--text-subtle); }
   .placeholder\:text-gray-600::placeholder { color: var(--text-subtle); }
 
