@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   Brain, Network, Search, Upload, Download, BookTemplate,
-  Zap, ArrowRight, Check, Sparkles, ArrowUpRight
+  Zap, ArrowRight, Sparkles, ArrowUpRight, Heart, ExternalLink
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -26,7 +26,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-7 text-sm text-gray-400">
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="hover:text-white transition-colors">How it works</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#support" className="hover:text-white transition-colors">Support</a>
             <a href="https://github.com" className="hover:text-white transition-colors flex items-center gap-1">
               GitHub <ArrowUpRight size={12} />
             </a>
@@ -252,65 +252,43 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="relative py-24">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-4">
-              Pricing
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Start free, <span className="text-gradient">scale later</span>
-            </h2>
+      {/* Pricing → Support */}
+      <section id="support" className="relative py-24">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-4">
+            <Heart size={11} className="text-pink-400" />
+            100% Free Forever
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Free & open source, <span className="text-gradient">forever</span>
+          </h2>
+          <p className="text-gray-400 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
+            No paywalls, no premium tiers, no limits. If AgentMemory saves you time,
+            consider supporting development.
+          </p>
+
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <a
+              href="https://www.donationalerts.com/r/obidel"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2.5 px-7 py-3.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white font-semibold rounded-2xl text-base hover:scale-[1.02] transition-all shadow-lg shadow-pink-500/30"
+            >
+              <Heart size={17} fill="currentColor" />
+              Donate on DonationAlerts
+              <ExternalLink size={15} />
+            </a>
+            <Link
+              to="/support"
+              className="btn-ghost text-base flex items-center gap-2 px-5 py-3.5"
+            >
+              Other ways to help
+            </Link>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5">
-            {[
-              { name: 'Free', price: '$0',  period: 'forever',     features: ['50 memories', '1 project', 'All export formats', 'Semantic search', 'Graph visualization'], cta: 'Start Free', highlight: false },
-              { name: 'Solo', price: '$10', period: 'per month',   features: ['Unlimited memories', '5 projects', 'GitHub Sync', 'Real embeddings', 'Priority support'], cta: 'Get Solo', highlight: true },
-              { name: 'Team', price: '$25', period: 'per month',   features: ['Everything in Solo', 'Unlimited projects', 'Team sharing', 'API access', 'Admin dashboard'], cta: 'Get Team', highlight: false },
-            ].map(plan => (
-              <div
-                key={plan.name}
-                className={`relative glass rounded-2xl p-6 transition-all hover:-translate-y-1 ${
-                  plan.highlight ? 'border-violet-500/40 ring-1 ring-violet-500/20' : ''
-                }`}
-              >
-                {plan.highlight && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 btn-primary text-[10px] font-mono uppercase tracking-widest px-3 py-1 rounded-full">
-                    ✦ Popular
-                  </div>
-                )}
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-white mb-3">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white">{plan.price}</span>
-                    <span className="text-gray-500 text-sm">/{plan.period}</span>
-                  </div>
-                </div>
-                <ul className="space-y-3 mb-7">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm text-gray-300">
-                      <div className="flex-shrink-0 w-4 h-4 rounded-full bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 flex items-center justify-center mt-0.5">
-                        <Check size={10} className="text-violet-300" />
-                      </div>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to="/"
-                  className={`block text-center py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
-                    plan.highlight
-                      ? 'btn-primary'
-                      : 'btn-ghost'
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
+          <p className="text-xs text-gray-600 mt-6 font-mono">
+            All donations are voluntary and processed via DonationAlerts
+          </p>
         </div>
       </section>
 
@@ -328,16 +306,27 @@ export default function LandingPage() {
                 Give your agents<br /><span className="text-gradient">a real memory</span>
               </h2>
               <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                Join developers building context-aware AI workflows. 50 memories free, forever.
+                Free forever, no limits, MIT-licensed. Built by the community, for the community.
               </p>
-              <Link
-                to="/"
-                className="btn-primary text-base inline-flex items-center gap-2 px-7 py-3.5"
-              >
-                <Sparkles size={16} />
-                Start Building
-                <ArrowRight size={16} />
-              </Link>
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <Link
+                  to="/"
+                  className="btn-primary text-base inline-flex items-center gap-2 px-7 py-3.5"
+                >
+                  <Sparkles size={16} />
+                  Open the App
+                  <ArrowRight size={16} />
+                </Link>
+                <a
+                  href="https://www.donationalerts.com/r/obidel"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-sm font-medium text-gray-200 hover:bg-white/10 hover:border-pink-500/30 transition-all"
+                >
+                  <Heart size={14} className="text-pink-400" />
+                  Support
+                </a>
+              </div>
             </div>
           </div>
         </div>

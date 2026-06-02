@@ -6,7 +6,7 @@ import ImportPage from './pages/ImportPage';
 import SearchPage from './pages/SearchPage';
 import ExportPage from './pages/ExportPage';
 import TemplatesPage from './pages/TemplatesPage';
-import PricingPage from './pages/PricingPage';
+import SupportPage from './pages/SupportPage';
 import LandingPage from './pages/LandingPage';
 
 function NotFound() {
@@ -38,7 +38,8 @@ export default function App() {
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/export" element={<ExportPage />} />
                 <Route path="/templates" element={<TemplatesPage />} />
-                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/support" element={<SupportPage />} />
+                <Route path="/pricing" element={<SupportPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>

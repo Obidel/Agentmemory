@@ -1,7 +1,7 @@
 export type MemoryCategory = 'architecture' | 'preference' | 'constraint' | 'context' | 'decision';
 export type MemorySource = 'claude' | 'cursor' | 'copilot' | 'manual' | 'import' | 'template';
 export type RelationType = 'related' | 'contradicts' | 'extends';
-export type PlanType = 'free' | 'solo' | 'team';
+export type PlanType = 'free' | 'sponsor';
 
 export interface Memory {
   id: string;

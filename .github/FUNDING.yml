@@ -1,0 +1,15 @@
+# GitHub Sponsors funding configuration
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# Primary: DonationAlerts (custom URL)
+custom: ['https://www.donationalerts.com/r/obidel']
+
+# Other platforms (uncomment when you set them up)
+# github: Obidel
+# patreon: obidel
+# open_collective: agentmemory
+# ko_fi: obidel
+# tidelift: npm/agentmemory
+# liberapay: obidel
+# issuehunt: obidel
+# otechie: obidel

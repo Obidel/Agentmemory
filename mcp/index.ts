@@ -13,11 +13,8 @@ import {
   useMemoryStore,
   simpleEmbedding,
   cosineSimilarity,
-  PlanLimitError,
 } from '../src/store/memoryStore.js';
-import { loadLicense, planMeets } from '../src/utils/license.js';
-import { getPlan } from '../src/utils/planConfig.js';
-import type { Memory, MemoryCategory, MemorySource, PlanType } from '../src/types/index.js';
+import type { Memory, MemoryCategory, MemorySource } from '../src/types/index.js';
 
 const VALID_CATEGORIES: MemoryCategory[] = [
   'architecture', 'preference', 'constraint', 'context', 'decision',
@@ -26,38 +23,9 @@ const VALID_SOURCES: MemorySource[] = [
   'claude', 'cursor', 'copilot', 'manual', 'import', 'template',
 ];
 
-// === License bootstrap ===
-// Open-core model: the local MCP server is free. Optional AGENTMEMORY_LICENSE
-// env var unlocks paid plans (Solo / Team) for the same data the web app uses.
-// If no license is provided, server runs in "free" mode (50 memories, 1 project).
-
-const LICENSE_KEY = process.env.AGENTMEMORY_LICENSE;
-const LICENSE_SECRET = process.env.AGENTMEMORY_LICENSE_SECRET ?? '';
-let activePlan: PlanType = 'free';
-let licenseEmail: string | undefined;
-
-async function refreshLicense() {
-  const v = await loadLicense(LICENSE_KEY, LICENSE_SECRET);
-  if (v.valid) {
-    activePlan = v.plan;
-    licenseEmail = v.email;
-  } else {
-    activePlan = 'free';
-    licenseEmail = undefined;
-  if (LICENSE_KEY) {
-    console.error(`[agentmemory] License rejected: ${v.reason}. Falling back to free tier.`);
-  }
-  }
-  return v;
-}
-
-await refreshLicense();
-
-// Sync the store's user plan with the active license so feature gating works.
-useMemoryStore.setState(state => ({
-  currentUser: { ...state.currentUser, plan: activePlan },
-}));
-
+// AgentMemory is 100% free and open source. The MCP server is fully featured
+// with no license checks or plan limits. To support development, see:
+//   https://www.donationalerts.com/r/obidel
 
 const server = new Server(
   { name: 'agentmemory', version: '0.1.0' },
@@ -67,7 +35,7 @@ const server = new Server(
 const store = useMemoryStore.getState();
 server.sendLoggingMessage?.({
   level: 'info',
-  data: `AgentMemory MCP started; ${store.memories.length} memories, plan=${activePlan}, project=${store.activeProject}`,
+  data: `AgentMemory MCP started; ${store.memories.length} memories, project=${store.activeProject} (free & open source)`,
 });
 
 // === Tool input schemas (Zod) ===
@@ -199,11 +167,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'get_project_context',
       description: 'Get all rules for the current active project, formatted as a markdown document. Use this at the start of a task to load project context.',
-      inputSchema: { type: 'object', properties: {} },
-    },
-    {
-      name: 'get_license_info',
-      description: 'Get current license/plan info, including usage against plan limits. Useful for checking if the user should upgrade.',
       inputSchema: { type: 'object', properties: {} },
     },
   ],
@@ -343,41 +306,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return textResult(md);
       }
 
-      case 'get_license_info': {
-        const v = await refreshLicense();
-        const state = useMemoryStore.getState();
-        const plan = getPlan(activePlan);
-        const memCount = state.memories.length;
-        const projCount = state.projects.length;
-        const upgradeUrl = 'https://polar.sh/agentmemory';
-        const lines = [
-          `Plan: ${activePlan.toUpperCase()}`,
-          `Email: ${licenseEmail ?? '(none)'}`,
-          `License valid: ${v.valid}${v.reason ? ` (${v.reason})` : ''}`,
-          `Memories: ${memCount} / ${plan.limits.memories === Infinity ? '∞' : plan.limits.memories}`,
-          `Projects: ${projCount} / ${plan.limits.projects === Infinity ? '∞' : plan.limits.projects}`,
-        ];
-        if (activePlan === 'free') {
-          lines.push('', 'Upgrade at: ' + upgradeUrl, 'Solo ($10/mo) unlocks unlimited memories and 10 projects.');
-        }
-        return textResult(lines.join('\n'));
-      }
-
       default:
         return errResult(`Unknown tool: ${name}`);
     }
   } catch (err) {
     if (err instanceof z.ZodError) {
       return errResult(`Invalid input: ${err.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
-    }
-    if (err instanceof PlanLimitError) {
-      return errResult(
-        `${err.message}\n\n` +
-        `You can:\n` +
-        `  - Delete old memories to free up space\n` +
-        `  - Upgrade your plan at https://polar.sh/agentmemory\n` +
-        `  - Or run the local MCP server without a license for the free tier`
-      );
     }
     return errResult(`Error: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -450,10 +384,7 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   const memCount = useMemoryStore.getState().memories.length;
-  const planNote = activePlan === 'free'
-    ? 'free tier (50 memories, 1 project)'
-    : `${activePlan} tier — license ${licenseEmail ?? ''}`;
-  console.error(`AgentMemory MCP server running on stdio (${memCount} memories loaded, ${planNote})`);
+  console.error(`AgentMemory MCP server running on stdio (${memCount} memories loaded, free & open source — https://www.donationalerts.com/r/obidel)`);
 }
 
 main().catch(err => {

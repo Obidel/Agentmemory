@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Brain, Search, Network, Upload, Download, BookTemplate,
   ChevronDown, Plus, Settings, Menu, X,
-  Folder, Sparkles
+  Folder
 } from 'lucide-react';
 import { useMemoryStore } from '../store/memoryStore';
 import { cn } from '../utils/cn';
@@ -41,9 +41,8 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const planBadge = {
-    free: { label: 'FREE', gradient: 'from-slate-500/20 to-slate-600/20 text-slate-300 border-slate-500/30' },
-    solo: { label: 'SOLO', gradient: 'from-violet-500/20 to-fuchsia-500/20 text-violet-200 border-violet-400/30' },
-    team: { label: 'TEAM', gradient: 'from-cyan-500/20 to-violet-500/20 text-cyan-200 border-cyan-400/30' },
+    free:    { label: 'MIT',   gradient: 'from-slate-500/20 to-slate-600/20 text-slate-300 border-slate-500/30' },
+    sponsor: { label: '♥',     gradient: 'from-pink-500/20 to-violet-500/20 text-pink-200 border-pink-400/30' },
   }[currentUser.plan];
 
   if (isLandingPage) {
@@ -194,43 +193,30 @@ export default function Layout({ children }: LayoutProps) {
           })}
         </nav>
 
-        {/* Plan card */}
+        {/* Memory counter + support CTA */}
         <div className="px-3 py-3">
-          <div className={cn('glass rounded-xl p-3', planBadge.gradient.includes('border') && '')}>
+          <div className="glass rounded-xl p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400">Plan</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400">Status</span>
               <span className={cn('text-[10px] font-mono px-2 py-0.5 rounded-full bg-gradient-to-r border', planBadge.gradient)}>
                 {planBadge.label}
               </span>
             </div>
-            <div className="flex items-end justify-between mb-2">
+            <div className="flex items-end justify-between mb-3">
               <div>
                 <div className="text-2xl font-bold text-white">{memories.length}</div>
                 <div className="text-[10px] text-gray-500">memories stored</div>
               </div>
-              {currentUser.plan === 'free' && (
-                <div className="text-right">
-                  <div className="text-xs text-gray-500">of 50</div>
-                </div>
-              )}
+              <div className="text-right">
+                <div className="text-xs text-gray-500">unlimited</div>
+              </div>
             </div>
-            {currentUser.plan === 'free' && (
-              <>
-                <div className="h-1 bg-black/40 rounded-full overflow-hidden mb-2">
-                  <div
-                    className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all"
-                    style={{ width: `${Math.min((memories.length / 50) * 100, 100)}%` }}
-                  />
-                </div>
-                <Link
-                  to="/pricing"
-                  className="flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-medium rounded-lg bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 hover:from-violet-500/30 hover:to-fuchsia-500/30 border border-violet-500/30 text-violet-200 transition-colors"
-                >
-                  <Sparkles size={11} />
-                  Upgrade to Solo
-                </Link>
-              </>
-            )}
+            <Link
+              to="/support"
+              className="flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-medium rounded-lg bg-gradient-to-r from-pink-500/20 to-violet-500/20 hover:from-pink-500/30 hover:to-violet-500/30 border border-pink-500/30 text-pink-200 transition-colors"
+            >
+              ♥ Support
+            </Link>
           </div>
         </div>
 

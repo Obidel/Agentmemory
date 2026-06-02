@@ -1,13 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
-import { Memory, MemoryRelation, MemoryCategory, MemorySource, User, PlanType } from '../types';
-import { getPlan } from '../utils/planConfig.js';
+import { Memory, MemoryRelation, MemoryCategory, MemorySource, User } from '../types';
 
 const DEMO_USER: User = {
   id: 'demo-user-001',
   email: 'demo@agentmemory.fyi',
   name: 'Demo User',
-  plan: 'solo',
+  plan: 'free',
   memory_count: 0,
   project_count: 1,
 };
@@ -261,31 +260,14 @@ const memoryStorage = createJSONStorage(() =>
   isBrowser() ? localStorage : createFileStorage()
 );
 
-// === Plan limits (gating) ===
+// === Plan limits ===
+// AgentMemory is fully free and open source. The plan metadata is kept for
+// analytics and to render sponsor tiers, but no limits are enforced.
 
-export class PlanLimitError extends Error {
-  constructor(public limit: 'memories' | 'projects', public current: number, public max: number, public plan: PlanType) {
-    super(
-      `${plan.toUpperCase()} plan limit reached: ${limit} (${current}/${max}). ` +
-      `Upgrade at https://polar.sh/agentmemory to unlock more.`
-    );
-    this.name = 'PlanLimitError';
-  }
-}
-
-function checkMemoryLimit(plan: PlanType, current: number) {
-  const max = getPlan(plan).limits.memories;
-  if (current >= max) {
-    throw new PlanLimitError('memories', current, max, plan);
-  }
-}
-
-function checkProjectLimit(plan: PlanType, current: number) {
-  const max = getPlan(plan).limits.projects;
-  if (current >= max) {
-    throw new PlanLimitError('projects', current, max, plan);
-  }
-}
+export const PLAN_LIMITS = {
+  free: { memories: Infinity, projects: Infinity },
+  sponsor: { memories: Infinity, projects: Infinity },
+};
 
 // === Zustand store ===
 
@@ -295,10 +277,7 @@ interface MemoryStore {
   currentUser: User;
   activeProject: string;
   projects: string[];
-  licenseKey: string;
 
-  setLicense: (key: string, plan: PlanType) => void;
-  clearLicense: () => void;
   addMemory: (memory: Omit<Memory, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Memory;
   updateMemory: (id: string, updates: Partial<Memory>) => void;
   deleteMemory: (id: string) => void;
@@ -320,24 +299,8 @@ export const useMemoryStore = create<MemoryStore>()(
       currentUser: DEMO_USER,
       activeProject: 'My React App',
       projects: ['My React App', 'API Service'],
-      licenseKey: '',
-
-      setLicense: (key, plan) => {
-        set(state => ({
-          licenseKey: key,
-          currentUser: { ...state.currentUser, plan },
-        }));
-      },
-
-      clearLicense: () => {
-        set(state => ({
-          licenseKey: '',
-          currentUser: { ...state.currentUser, plan: 'free' },
-        }));
-      },
 
       addMemory: (memoryData) => {
-        checkMemoryLimit(get().currentUser.plan, get().memories.length);
         const now = new Date().toISOString();
         const newMemory: Memory = {
           ...memoryData,
@@ -393,10 +356,6 @@ export const useMemoryStore = create<MemoryStore>()(
       setActiveProject: (project) => set({ activeProject: project }),
 
       addProject: (name) => {
-        const state = get();
-        if (!state.projects.includes(name)) {
-          checkProjectLimit(state.currentUser.plan, state.projects.length);
-        }
         set(state => ({
           projects: state.projects.includes(name) ? state.projects : [...state.projects, name],
           activeProject: name,
@@ -460,7 +419,6 @@ export const useMemoryStore = create<MemoryStore>()(
         projects: state.projects,
         activeProject: state.activeProject,
         currentUser: state.currentUser,
-        licenseKey: state.licenseKey,
       }),
     }
   )
