@@ -13,27 +13,27 @@
 ## Screenshots
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/dashboard.png" alt="Dashboard" width="800" />
+  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/dashboard.png" alt="Dashboard" width="900" />
 </p>
 
 <p align="center">
-  <em>Dashboard — search, filter, and decay-aware memory list</em>
+  <em>Dashboard — at-a-glance stats, recent memories, category breakdown, and quick actions</em>
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/graph.png" alt="Memory Graph" width="800" />
+  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/graph.png" alt="Memory Graph" width="900" />
 </p>
 
 <p align="center">
-  <em>Memory Graph — D3 force-directed view of memories and their semantic relations</em>
+  <em>Memory Graph — D3 force-directed view with inline Memory Details panel and Similar Memories (98% / 97% match) ranked by vector distance</em>
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/search.png" alt="Hybrid Search" width="800" />
+  <img src="https://raw.githubusercontent.com/Obidel/Agentmemory/main/docs/screenshots/export.png" alt="Export" width="900" />
 </p>
 
 <p align="center">
-  <em>Hybrid Search — BM25 + vector + graph results, fused with RRF</em>
+  <em>Export — one-click CLAUDE.md, .cursorrules, MemGPT JSON, or shareable read-only URL, with live preview and category filters</em>
 </p>
 
 ## 100% free, forever
