@@ -25,7 +25,7 @@ const VALID_SOURCES: MemorySource[] = [
 
 // AgentMemory is 100% free and open source. The MCP server is fully featured
 // with no license checks or plan limits. To support development, see:
-//   https://www.donationalerts.com/r/obidel
+//   https://dalink.to/agentmemory
 
 const server = new Server(
   { name: 'agentmemory', version: '0.1.0' },
@@ -384,7 +384,7 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   const memCount = useMemoryStore.getState().memories.length;
-  console.error(`AgentMemory MCP server running on stdio (${memCount} memories loaded, free & open source — https://www.donationalerts.com/r/obidel)`);
+  console.error(`AgentMemory MCP server running on stdio (${memCount} memories loaded, free & open source — https://dalink.to/agentmemory)`);
 }
 
 main().catch(err => {

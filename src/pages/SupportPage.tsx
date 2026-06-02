@@ -1,7 +1,7 @@
 import { Heart, Coffee, Sparkles, Star, ExternalLink, Users, Code2, GitBranch } from 'lucide-react';
 
 // DonationAlerts direct link — replace with your own page
-const DONATION_URL = 'https://www.donationalerts.com/r/obidel';
+const DONATION_URL = 'https://dalink.to/agentmemory';
 
 const SPONSOR_TIERS = [
   {

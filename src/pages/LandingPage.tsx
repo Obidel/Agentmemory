@@ -269,7 +269,7 @@ export default function LandingPage() {
 
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <a
-              href="https://www.donationalerts.com/r/obidel"
+                  href="https://dalink.to/agentmemory"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2.5 px-7 py-3.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white font-semibold rounded-2xl text-base hover:scale-[1.02] transition-all shadow-lg shadow-pink-500/30"
@@ -318,7 +318,7 @@ export default function LandingPage() {
                   <ArrowRight size={16} />
                 </Link>
                 <a
-                  href="https://www.donationalerts.com/r/obidel"
+              href="https://dalink.to/agentmemory"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-5 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-sm font-medium text-gray-200 hover:bg-white/10 hover:border-pink-500/30 transition-all"

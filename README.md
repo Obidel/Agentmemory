@@ -16,7 +16,7 @@ AgentMemory is open source under MIT. No paywalls, no premium tiers, no limits.
 
 AgentMemory is built and maintained in spare time. If it saves you time, consider supporting development:
 
-- **[Donate on DonationAlerts](https://www.donationalerts.com/r/obidel)** — cards, SBP, YooMoney, crypto, 100+ methods
+- **[Donate on DonationAlerts](https://dalink.to/agentmemory)** — cards, SBP, YooMoney, crypto, 100+ methods
 - ⭐ [Star the repo](https://github.com/Obidel/Agentmemory) — the best $0 donation
 - 🐛 [Report bugs or request features](https://github.com/Obidel/Agentmemory/issues)
 - 🔀 [Contribute PRs](https://github.com/Obidel/Agentmemory/fork)
@@ -24,7 +24,7 @@ AgentMemory is built and maintained in spare time. If it saves you time, conside
 
 ### Sponsors
 
-A thank-you to everyone who supports development. Add your name to the README via a PR or [donation message](https://www.donationalerts.com/r/obidel).
+A thank-you to everyone who supports development. Add your name to the README via a PR or [donation message](https://dalink.to/agentmemory).
 
 ## Quick start
 

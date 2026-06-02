@@ -1,6 +1,6 @@
 // Plan metadata — AgentMemory is 100% free and open source. We keep plan
 // information for analytics and to display sponsor recognition, but no
-// features are gated. Support the project: https://www.donationalerts.com/r/obidel
+// features are gated. Support the project: https://dalink.to/agentmemory
 
 import { PlanType } from '../types';
 
