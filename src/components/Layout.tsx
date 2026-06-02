@@ -32,6 +32,7 @@ export default function Layout({ children }: LayoutProps) {
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [addingProject, setAddingProject] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const isLandingPage = location.pathname === '/landing';
 
@@ -49,15 +50,25 @@ export default function Layout({ children }: LayoutProps) {
     : { label: 'MIT',   gradient: 'from-slate-500/20 to-slate-600/20 text-slate-300 border-slate-500/30' };
 
   const handleSignOut = async () => {
-    if (!supabase) return;
+    if (signingOut) return;
+    if (!window.confirm('Sign out and clear local cloud data?')) return;
+    setSigningOut(true);
     try {
-      await supabase.auth.signOut();
+      if (supabase) {
+        // scope: 'global' kills the session in every tab, not just this one
+        const { error } = await supabase.auth.signOut({ scope: 'global' });
+        if (error) console.error('Supabase signOut error:', error);
+      } else {
+        console.warn('Supabase not configured, clearing local state only');
+      }
     } catch (err) {
       console.error('Sign out failed:', err);
+    } finally {
+      // Always clear local state, even if the network call failed —
+      // the user clicked sign out, so we shouldn't leak cloud data.
+      setCloudUser(null);
+      setSigningOut(false);
     }
-    // Always clear local state, even if the network call failed —
-    // the user clicked sign out, so we shouldn't leak cloud data.
-    setCloudUser(null);
   };
 
   if (isLandingPage) {
@@ -266,17 +277,20 @@ export default function Layout({ children }: LayoutProps) {
                 <>
                   <button
                     onClick={() => void pullFromCloud()}
-                    className="text-gray-400 hover:text-themed-primary p-1.5 rounded-lg hover:bg-themed-elevated"
+                    disabled={syncing}
+                    className="text-gray-400 hover:text-themed-primary p-1.5 rounded-lg hover:bg-themed-elevated disabled:opacity-50"
                     title="Sync now"
                   >
                     <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
                   </button>
                   <button
                     onClick={handleSignOut}
-                    className="text-gray-400 hover:text-themed-primary p-1.5 rounded-lg hover:bg-themed-elevated"
+                    disabled={signingOut}
+                    className="text-gray-400 hover:text-themed-primary p-1.5 rounded-lg hover:bg-themed-elevated disabled:opacity-50"
                     title="Sign out"
+                    type="button"
                   >
-                    <LogOut size={14} />
+                    <LogOut size={14} className={signingOut ? 'animate-pulse' : ''} />
                   </button>
                 </>
               ) : (
